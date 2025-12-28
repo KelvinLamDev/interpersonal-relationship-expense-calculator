@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人際關係分帳計算機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="scenario.js"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", "Heiti TC", sans-serif; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .cursor-pointer { cursor: pointer; }
+        
+        /* 捲軸美化 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f5f5f4; }
+        ::-webkit-scrollbar-thumb { background: #a7f3d0; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #34d399; }
+
+        /* 計算機按鈕 */
+        .calc-btn { @apply bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold py-3 rounded active:bg-stone-300 transition select-none; }
+        .calc-btn-op { @apply bg-emerald-100 hover:bg-emerald-200 text-emerald-700; }
+        .calc-btn-eq { @apply bg-emerald-500 hover:bg-emerald-600 text-white col-span-2; }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800 min-h-screen">
+
+<div id="app" class="max-w-5xl mx-auto p-4 sm:p-6" @click="closeCalcOutside">
+    
+    <!-- Header -->
+    <header class="mb-8 text-center relative">
+        <h1 class="text-3xl font-bold text-emerald-700 mb-2 tracking-wide">💸 人際關係分帳計算機</h1>
+        <p class="text-stone-500 text-sm">圈內成員優先互轉，減少圈主轉手負擔，圈主負責跨圈結算。</p>
+        <p class="text-stone-500 text-sm">💡 名字前有 👑 代表該人員為圈子的核心(圈主)。</p>
+        
+        <div class="flex justify-center gap-4 mt-4 items-center flex-wrap">
+            <button v-if="hasScenarioData" @click="loadUserScenario" class="text-xs bg-stone-200 hover:bg-stone-300 px-3 py-1.5 rounded-full text-stone-600 transition font-medium">
+                📂 載入真實案例
+            </button>
+            
+            <!-- 小數點設定 -->
+            <div class="flex items-center bg-white rounded-full px-1 py-0.5 border border-emerald-200 shadow-sm">
+                <span class="text-xs text-stone-400 px-2 font-bold">小數點:</span>
+                <button @click="precision = 1" :class="precision === 1 ? 'bg-emerald-500 text-white shadow' : 'text-stone-500 hover:bg-stone-100'" class="text-xs px-3 py-1 rounded-full transition">1位</button>
+                <button @click="precision = 2" :class="precision === 2 ? 'bg-emerald-500 text-white shadow' : 'text-stone-500 hover:bg-stone-100'" class="text-xs px-3 py-1 rounded-full transition">2位</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
+        <!-- 區塊 1：人員與圈子 -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex flex-col">
+            <h2 class="text-xl font-bold mb-4 flex items-center text-stone-700">
+                <span class="bg-emerald-100 text-emerald-600 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">1</span> 
+                人員與圈子
+            </h2>
+            
+            <!-- 新增人員 -->
+            <div class="flex gap-2 mb-4">
+                <input v-model="newPersonName" @keyup.enter="addPerson" type="text" placeholder="輸入名字" 
+                       class="flex-1 border border-stone-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-stone-50 focus:bg-white transition">
+                <button @click="addPerson" class="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition shadow-sm font-medium">新增</button>
+            </div>
+
+            <!-- 人員列表 (含財務摘要) -->
+            <div class="overflow-y-auto max-h-60 mb-4 pr-1">
+                 <h3 class="text-xs font-bold text-stone-400 uppercase mb-2 tracking-wider">人員名單 ({{ people.length }})</h3>
+                <div v-if="people.length === 0" class="text-xs text-stone-400 py-4 text-center italic border border-dashed border-stone-200 rounded-lg">暫無人員</div>
+                
+                <div class="space-y-2">
+                    <div v-for="p in people" :key="p.id" class="flex items-center justify-between bg-stone-50 px-3 py-2 rounded-lg border border-stone-100 hover:border-emerald-200 transition group">
+                        <div class="flex items-center gap-2">
+                            <!-- 如果是圈主，顯示皇冠 -->
+                            <span v-if="isLeader(p.id)" class="text-sm" title="圈主">👑</span>
+                            <span class="font-bold text-stone-700">{{ p.name }}</span>
+                            <button @click="removePerson(p.id)" class="text-stone-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition">×</button>
+                        </div>
+                        
+                        <!-- 財務摘要 -->
+                        <div class="flex items-center gap-2 text-[10px] sm:text-xs font-medium">
+                            <!-- 墊 (灰色) -->
+                            <div class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded" title="總已付金額">
+                                墊 ${{ formatMoney(personStats[p.id].paid) }}
+                            </div>
+                            
+                            <!-- 收 (綠色) / 付 (紅色) -->
+                            <div v-if="personStats[p.id].net > 0.001" class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200" title="淨收入 (應收)">
+                                收 ${{ formatMoney(personStats[p.id].net) }}
+                            </div>
+                            <div v-else-if="personStats[p.id].net < -0.001" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200" title="淨支出 (應付)">
+                                付 ${{ formatMoney(Math.abs(personStats[p.id].net)) }}
+                            </div>
+                            <!-- 平帳時 -->
+                            <div v-else class="text-stone-300 px-1">
+                                -
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="border-stone-100 mb-4">
+
+            <!-- 建立圈子 -->
+            <div v-if="people.length > 1" class="mb-4">
+                <div class="bg-stone-50 p-4 rounded-xl border border-stone-200">
+                    <h3 class="text-xs font-bold text-emerald-600 uppercase mb-3 tracking-wider flex items-center">
+                        🔗 建立圈子
+                        <span class="ml-auto text-[10px] text-stone-400 font-normal">成員優先互轉，圈主對外結算</span>
+                    </h3>
+                    
+                    <div class="flex gap-2 mb-3">
+                        <div class="w-1/2">
+                            <label class="block text-[10px] text-stone-500 mb-1 font-bold">圈名</label>
+                            <input v-model="groupName" type="text" placeholder="自訂名稱" class="w-full border border-stone-300 bg-white p-1.5 rounded text-sm focus:outline-emerald-500">
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-[10px] text-emerald-600 mb-1 font-bold">圈主 (核心)</label>
+                            <select v-model="groupLeaderId" class="w-full border border-emerald-200 p-1.5 rounded text-sm bg-white focus:ring-1 focus:ring-emerald-500 text-emerald-800 font-medium">
+                                <option :value="null">選擇...</option>
+                                <option v-for="p in people" :value="p.id">{{ p.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-[10px] text-stone-500 mb-1 font-bold">選擇成員</label>
+                        <div class="bg-white border border-stone-200 rounded p-2 max-h-24 overflow-y-auto grid grid-cols-2 gap-2">
+                            <label v-for="p in people" :key="'g-'+p.id" class="flex items-center gap-2 text-sm cursor-pointer hover:bg-stone-50 p-1 rounded transition select-none">
+                                <input type="checkbox" :value="p.id" v-model="groupMemberIds" 
+                                       :disabled="p.id === groupLeaderId"
+                                       class="rounded text-emerald-500 focus:ring-emerald-500">
+                                <span :class="{'text-stone-300 line-through': p.id === groupLeaderId}">{{ p.name }}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button @click="createGroup" :disabled="!canCreateGroup" 
+                            class="w-full bg-stone-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-stone-700 disabled:opacity-50 transition">
+                        建立
+                    </button>
+                </div>
+            </div>
+
+            <!-- 圈子列表 -->
+            <div>
+                <div v-if="groups.length > 0" class="space-y-2">
+                    <div v-for="(group, idx) in groups" :key="idx" class="bg-white border border-emerald-100 rounded-lg p-3 shadow-sm relative group hover:shadow-md transition">
+                        <button @click="removeGroup(idx)" class="absolute top-2 right-2 text-stone-300 hover:text-red-400">×</button>
+                        <div class="font-bold text-emerald-700 text-sm mb-1 flex items-center">
+                            👑 {{ getPersonName(group.leaderId) }} 的圈子 
+                            <span v-if="group.name" class="ml-2 text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full">{{ group.name }}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            <span v-for="mid in group.memberIds" :key="mid" class="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded border border-stone-200">
+                                {{ getPersonName(mid) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 區塊 2：消費 -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex flex-col relative">
+            <h2 class="text-xl font-bold mb-4 flex items-center text-stone-700">
+                <span class="bg-emerald-100 text-emerald-600 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">2</span> 
+                輸入消費
+            </h2>
+            
+            <div v-if="people.length < 2" class="py-10 flex items-center justify-center text-stone-400 italic">
+                請先在左側新增至少兩位人員
+            </div>
+            
+            <div v-else class="flex flex-col">
+                <!-- 輸入表單 -->
+                <div class="space-y-3 mb-4 bg-stone-50 p-4 rounded-xl border border-stone-100">
+                    <input v-model="expenseDesc" type="text" placeholder="消費項目 (例如: 晚餐)" class="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500 bg-white">
+                    
+                    <div class="flex gap-2 items-center">
+                        <span class="text-xs w-12 text-stone-500 font-bold text-right">墊款人</span>
+                        <select v-model="payerId" class="flex-1 border border-stone-300 p-2 rounded-lg bg-white text-sm focus:outline-emerald-500">
+                            <option v-for="p in people" :value="p.id">{{ p.name }}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex gap-2 items-center relative">
+                        <span class="text-xs w-12 text-stone-500 font-bold text-right">金額 $</span>
+                        <div class="flex-1 flex relative">
+                            <input v-model.number="amount" type="number" min="0" class="flex-1 border border-stone-300 p-2 rounded-l-lg w-full focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                            <button @click.stop="toggleCalculator" class="bg-stone-200 px-3 rounded-r-lg text-lg border-y border-r border-stone-300 hover:bg-stone-300 transition text-stone-600" title="開啟計算機">
+                                🧮
+                            </button>
+                            
+                            <!-- 計算機彈出 -->
+                            <div v-if="showCalculator" @click.stop class="absolute top-12 right-0 w-64 bg-white shadow-xl rounded-xl border border-stone-200 z-50 p-4 animate-fade-in">
+                                <div class="bg-stone-800 text-emerald-300 text-right p-3 rounded mb-3 text-xl font-mono overflow-hidden h-14 flex items-center justify-end shadow-inner">
+                                    {{ calcDisplay || '0' }}
+                                </div>
+                                <div class="grid grid-cols-4 gap-2">
+                                    <button @click="calcClear" class="calc-btn text-red-400 bg-red-50 hover:bg-red-100">C</button>
+                                    <button @click="calcAppend('/')" class="calc-btn calc-btn-op">÷</button>
+                                    <button @click="calcAppend('*')" class="calc-btn calc-btn-op">×</button>
+                                    <button @click="calcBackspace" class="calc-btn text-stone-400">⌫</button>
+
+                                    <button @click="calcAppend('7')" class="calc-btn">7</button>
+                                    <button @click="calcAppend('8')" class="calc-btn">8</button>
+                                    <button @click="calcAppend('9')" class="calc-btn">9</button>
+                                    <button @click="calcAppend('-')" class="calc-btn calc-btn-op">-</button>
+
+                                    <button @click="calcAppend('4')" class="calc-btn">4</button>
+                                    <button @click="calcAppend('5')" class="calc-btn">5</button>
+                                    <button @click="calcAppend('6')" class="calc-btn">6</button>
+                                    <button @click="calcAppend('+')" class="calc-btn calc-btn-op">+</button>
+
+                                    <button @click="calcAppend('1')" class="calc-btn">1</button>
+                                    <button @click="calcAppend('2')" class="calc-btn">2</button>
+                                    <button @click="calcAppend('3')" class="calc-btn">3</button>
+                                    <button @click="calcResult" class="calc-btn calc-btn-eq text-lg row-span-2 flex items-center justify-center rounded-br-lg shadow-md">=</button>
+                                    
+                                    <button @click="calcAppend('0')" class="calc-btn col-span-2 rounded-bl-lg">0</button>
+                                    <button @click="calcAppend('.')" class="calc-btn">.</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分攤者 -->
+                    <div class="bg-white p-3 rounded-lg border border-stone-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-stone-500">誰要分攤?</span>
+                            <div class="space-x-2">
+                                <button @click="splitAll" class="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded">全選</button>
+                                <button @click="splitNone" class="text-[10px] text-stone-400 hover:text-stone-600 bg-stone-100 px-2 py-0.5 rounded">清空</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-24 overflow-y-auto">
+                            <label v-for="p in people" :key="'split-'+p.id" class="flex items-center space-x-2 text-xs cursor-pointer hover:bg-stone-50 p-1 rounded transition select-none">
+                                <input type="checkbox" :value="p.id" v-model="splitAmong" class="rounded text-emerald-500 focus:ring-emerald-500 border-stone-300">
+                                <span>{{ p.name }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button @click="addExpense" :disabled="!isValidExpense" 
+                            class="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md">
+                        新增此筆消費
+                    </button>
+                </div>
+
+                <!-- 消費列表 (已排序) -->
+                <div class="overflow-y-auto max-h-96 bg-stone-50 rounded-xl p-2 border border-stone-200">
+                    <div v-if="expenses.length === 0" class="py-10 flex flex-col items-center justify-center text-stone-400 italic text-sm">
+                        <span>尚未輸入任何消費</span>
+                    </div>
+                    <ul class="space-y-2">
+                        <!-- 使用 sortedExpenses 進行渲染 -->
+                        <li v-for="(exp, idx) in sortedExpenses" :key="idx" 
+                            class="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden transition-all hover:border-emerald-300 group">
+                            
+                            <div @click="toggleExpenseDetails(exp.originalIndex)" class="p-3 flex justify-between items-center cursor-pointer select-none">
+                                <div class="flex-1">
+                                    <span class="font-bold text-stone-700">{{ getPersonName(exp.payerId) }}</span> 
+                                    <span class="text-stone-400 text-xs mx-1">墊</span> 
+                                    <span class="font-bold text-emerald-600 text-base">${{ formatMoney(exp.amount) }}</span> 
+                                    <span class="text-stone-500 text-xs ml-2">({{ exp.desc }})</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-stone-400 bg-stone-50 px-2 py-1 rounded border border-stone-100 group-hover:bg-emerald-50 group-hover:text-emerald-500 group-hover:border-emerald-100 transition" v-if="!exp.showDetails">詳情</span>
+                                    <button @click.stop="removeExpense(exp.originalIndex)" class="text-stone-300 hover:text-red-400 text-lg leading-none px-1">×</button>
+                                </div>
+                            </div>
+                            <div v-if="exp.showDetails" class="bg-emerald-50/50 p-2 pl-4 text-xs text-stone-600 border-t border-emerald-100 animate-fade-in">
+                                <div class="font-bold mb-1 text-emerald-700 flex justify-between">
+                                    <span>分攤名單 ({{ exp.splitIds.length }}人)</span>
+                                    <span>每人 ${{ formatMoney(exp.amount / exp.splitIds.length) }}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-1">
+                                    <span v-for="sid in exp.splitIds" :key="sid" class="bg-white border border-emerald-100 px-2 py-0.5 rounded text-stone-600 shadow-sm">
+                                        {{ getPersonName(sid) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 區塊 3：結算 (Slate Theme) -->
+    <div class="mt-8 bg-slate-800 text-white p-6 rounded-2xl shadow-xl border border-slate-700">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold flex items-center text-slate-100">
+                <span class="bg-slate-700 text-emerald-400 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm shadow-md border border-slate-600">3</span> 
+                結算方案
+            </h2>
+            <button @click="calculateSettlement" class="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg transform hover:scale-105 transition border border-emerald-400/50">
+                開始計算
+            </button>
+        </div>
+
+        <div v-if="settlements.length > 0" class="space-y-3">
+            <div v-for="(s, i) in settlements" :key="i" class="flex items-center justify-between bg-slate-700 p-4 rounded-xl border-l-4 border-emerald-500 animate-fade-in shadow-md hover:bg-slate-600 transition">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-lg">
+                    <div class="flex items-center">
+                        <span class="font-bold text-slate-200">{{ getDisplayName(s.fromId) }}</span>
+                        <span class="text-slate-500 text-sm mx-2">➔</span>
+                        <span class="font-bold text-emerald-400">{{ getDisplayName(s.toId) }}</span>
+                    </div>
+                    <span v-if="s.type === 'local'" class="text-[10px] bg-slate-900 text-slate-300 px-2 py-1 rounded border border-slate-600 shadow uppercase tracking-wider">圈內互轉</span>
+                    <span v-else class="text-[10px] bg-emerald-900/50 text-emerald-300 px-2 py-1 rounded border border-emerald-800 shadow uppercase tracking-wider">跨圈結算</span>
+                </div>
+                <div class="text-xl font-mono font-bold text-emerald-400 tracking-wide">${{ formatMoney(s.amount) }}</div>
+            </div>
+            <div class="mt-4 text-sm text-slate-400 text-center bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
+                💡 「圈內互轉」：成員之間直接轉帳，餘額由圈主承接；「跨圈結算」：由圈主代表圈子結算。
+            </div>
+        </div>
+        
+        <div v-else-if="calculated" class="text-center text-slate-400 py-6 text-lg bg-slate-700/50 rounded-xl border border-dashed border-slate-600">
+            🎉 帳目已平！沒有需要轉帳的金額。
+        </div>
+        <div v-else class="text-center text-slate-500 italic py-6">
+            輸入消費後，點擊「開始計算」查看結果。
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp } = Vue;
+
+    const app = createApp({
+        data() {
+            return {
+                newPersonName: '',
+                people: [],
+                groupName: '', groupLeaderId: null, groupMemberIds: [], groups: [],
+                expenseDesc: '', payerId: null, amount: 0, splitAmong: [], expenses: [],
+                settlements: [], 
+                calculated: false, nextId: 1,
+                showCalculator: false, calcDisplay: '',
+                precision: 2,
+                hasScenarioData: false
+            }
+        },
+        mounted() {
+            this.hasScenarioData = !!SCENARIO_DATA;
+        },
+        computed: {
+            canCreateGroup() { return this.groupLeaderId && this.groupMemberIds.length > 0; },
+            isValidExpense() { return this.expenseDesc && this.payerId && this.amount > 0 && this.splitAmong.length > 0; },
+            
+            leaderIds() {
+                return new Set(this.groups.map(g => g.leaderId));
+            },
+
+            // 1. 列表排序邏輯：依 PayerID 分組
+            sortedExpenses() {
+                // 回傳帶有原始索引的新陣列
+                return this.expenses
+                    .map((e, i) => ({ ...e, originalIndex: i }))
+                    .sort((a, b) => {
+                        // 先排 ID
+                        if (a.payerId !== b.payerId) return a.payerId - b.payerId;
+                        // 再排輸入順序
+                        return a.originalIndex - b.originalIndex;
+                    });
+            },
+
+            personStats() {
+                let stats = {};
+                this.people.forEach(p => stats[p.id] = { paid: 0, share: 0, net: 0 });
+                this.expenses.forEach(exp => {
+                    if (stats[exp.payerId]) stats[exp.payerId].paid += exp.amount;
+                    if (exp.splitIds.length > 0) {
+                        const share = exp.amount / exp.splitIds.length;
+                        exp.splitIds.forEach(sid => { if (stats[sid]) stats[sid].share += share; });
+                    }
+                });
+                
+                // 計算淨額
+                for (let id in stats) {
+                    stats[id].net = stats[id].paid - stats[id].share;
+                }
+                
+                return stats;
+            },
+
+            generatedConnections() {
+                let conns = [];
+                this.groups.forEach(g => {
+                    g.memberIds.forEach(mid => { conns.push({ a: g.leaderId, b: mid }); });
+                });
+                return conns;
+            }
+        },
+        methods: {
+            formatMoney(val) {
+                if (typeof val !== 'number') return '0';
+                return val.toFixed(this.precision);
+            },
+            getMultiplier() { return Math.pow(10, this.precision); },
+
+            addPerson() {
+                if(!this.newPersonName.trim()) return;
+                this.people.push({ id: this.nextId++, name: this.newPersonName.trim() });
+                this.newPersonName = '';
+            },
+            removePerson(id) {
+                this.people = this.people.filter(p => p.id !== id);
+                this.groups = this.groups.filter(g => g.leaderId !== id);
+                this.groups.forEach(g => { g.memberIds = g.memberIds.filter(mid => mid !== id); });
+                this.groups = this.groups.filter(g => g.memberIds.length > 0);
+                this.expenses = []; this.settlements = []; this.calculated = false;
+            },
+            getPersonName(id) { return this.people.find(p => p.id === id)?.name || '未知'; },
+            
+            isLeader(id) { return this.leaderIds.has(id); },
+            
+            getDisplayName(id) {
+                const name = this.getPersonName(id);
+                return this.isLeader(id) ? `👑 ${name}` : name;
+            },
+            
+            createGroup() {
+                if(!this.canCreateGroup) return;
+                this.groups.push({ name: this.groupName, leaderId: this.groupLeaderId, memberIds: [...this.groupMemberIds] });
+                this.groupName = ''; this.groupLeaderId = null; this.groupMemberIds = [];
+            },
+            removeGroup(idx) { this.groups.splice(idx, 1); },
+            
+            splitAll() { this.splitAmong = this.people.map(p => p.id); },
+            splitNone() { this.splitAmong = []; },
+            
+            addExpense() {
+                if(!this.isValidExpense) return;
+                this.expenses.push({ desc: this.expenseDesc, payerId: this.payerId, amount: this.amount, splitIds: [...this.splitAmong], showDetails: false });
+                this.expenseDesc = ''; this.amount = 0;
+            },
+            
+            // 修正：刪除需使用原始 Index
+            removeExpense(originalIdx) { 
+                this.expenses.splice(originalIdx, 1); 
+            },
+            // 修正：Toggle 需使用原始 Index
+            toggleExpenseDetails(originalIdx) { 
+                this.expenses[originalIdx].showDetails = !this.expenses[originalIdx].showDetails; 
+            },
+
+            toggleCalculator() {
+                this.showCalculator = !this.showCalculator;
+                if(this.showCalculator) { this.calcDisplay = this.amount > 0 ? this.amount.toString() : ''; }
+            },
+            closeCalcOutside() { this.showCalculator = false; },
+            calcAppend(char) {
+                const last = this.calcDisplay.slice(-1);
+                if (['+','-','*','/','.'].includes(char) && ['+','-','*','/','.'].includes(last)) return;
+                this.calcDisplay += char;
+            },
+            calcClear() { this.calcDisplay = ''; },
+            calcBackspace() { this.calcDisplay = this.calcDisplay.slice(0, -1); },
+            calcResult() {
+                try {
+                    if(!this.calcDisplay) return;
+                    const sanitized = this.calcDisplay.replace(/[^0-9+\-*/.]/g, '');
+                    const result = new Function('return ' + sanitized)();
+                    const m = this.getMultiplier();
+                    this.amount = Math.round(result * m) / m;
+                    this.showCalculator = false;
+                } catch (e) { this.calcDisplay = 'Error'; setTimeout(() => this.calcDisplay = '', 1000); }
+            },
+
+            calculateSettlement() {
+                this.settlements = [];
+                this.calculated = true;
+                if (this.people.length === 0) return;
+
+                const m = this.getMultiplier(); 
+                const epsilon = this.precision === 1 ? 0.09 : 0.009; 
+
+                let balances = {}; 
+                this.people.forEach(p => balances[p.id] = 0);
+                this.expenses.forEach(exp => {
+                    const splitCount = exp.splitIds.length;
+                    const share = exp.amount / splitCount;
+                    balances[exp.payerId] += exp.amount;
+                    exp.splitIds.forEach(id => balances[id] -= share);
+                });
+                for(let id in balances) balances[id] = Math.round(balances[id] * m) / m;
+
+                let currentConnections = this.generatedConnections;
+                let adj = {};
+                this.people.forEach(p => adj[p.id] = []);
+                currentConnections.forEach(c => { adj[c.a].push(c.b); adj[c.b].push(c.a); });
+
+                let visited = new Set();
+                let islandRepresentatives = [];
+
+                for(let person of this.people) {
+                    if(!visited.has(person.id)) {
+                        let componentNodes = [];
+                        let q = [person.id];
+                        visited.add(person.id);
+                        while(q.length > 0) {
+                            let curr = q.shift();
+                            componentNodes.push(curr);
+                            for(let n of adj[curr]) {
+                                if(!visited.has(n)) { visited.add(n); q.push(n); }
+                            }
+                        }
+
+                        let representativeId = this.solveIslandInternal(componentNodes, adj, balances, currentConnections, epsilon, m);
+                        
+                        if (Math.abs(balances[representativeId]) > epsilon) {
+                            islandRepresentatives.push({ id: representativeId, val: balances[representativeId] });
+                        }
+                    }
+                }
+                this.solveGlobalDebts(islandRepresentatives, epsilon);
+            },
+
+            solveIslandInternal(nodes, adj, balances, connections, epsilon, m) {
+                if(nodes.length < 2) return nodes[0];
+
+                let scores = {};
+                nodes.forEach(n => scores[n] = 0);
+                connections.forEach(c => {
+                    if (nodes.includes(c.a) && nodes.includes(c.b)) {
+                        scores[c.a] += 10; scores[c.b] += 1;
+                    }
+                });
+                let root = nodes.sort((a, b) => {
+                    let scoreDiff = scores[b] - scores[a];
+                    if (scoreDiff !== 0) return scoreDiff;
+                    return balances[b] - balances[a];
+                })[0];
+
+                let isGroupCircle = scores[root] >= 10; 
+
+                if (isGroupCircle) {
+                    let members = nodes.filter(n => n !== root);
+                    let debtors = members.filter(n => balances[n] < -epsilon).sort((a,b) => balances[a] - balances[b]);
+                    let creditors = members.filter(n => balances[n] > epsilon).sort((a,b) => balances[b] - balances[a]);
+
+                    let i = 0, j = 0;
+                    while(i < debtors.length && j < creditors.length) {
+                        let debtor = debtors[i];
+                        let creditor = creditors[j];
+                        
+                        let amount = Math.min(Math.abs(balances[debtor]), balances[creditor]);
+                        amount = Math.round(amount * m) / m; 
+                        
+                        if (amount > 0) {
+                            this.settlements.push({
+                                fromId: debtor,
+                                toId: creditor,
+                                amount: amount,
+                                type: 'local'
+                            });
+                            balances[debtor] += amount;
+                            balances[creditor] -= amount;
+                            balances[debtor] = Math.round(balances[debtor] * m) / m;
+                            balances[creditor] = Math.round(balances[creditor] * m) / m;
+                        }
+
+                        if(Math.abs(balances[debtor]) < epsilon) i++;
+                        if(Math.abs(balances[creditor]) < epsilon) j++;
+                    }
+
+                    members.forEach(member => {
+                        if (Math.abs(balances[member]) > epsilon) {
+                            let amt = Math.abs(balances[member]);
+                            if (balances[member] < 0) {
+                                this.settlements.push({ fromId: member, toId: root, amount: amt, type: 'local' });
+                            } else {
+                                this.settlements.push({ fromId: root, toId: member, amount: amt, type: 'local' });
+                            }
+                            balances[root] += balances[member];
+                            balances[root] = Math.round(balances[root] * m) / m;
+                            balances[member] = 0;
+                        }
+                    });
+
+                } else {
+                    let parentMap = {};
+                    let q = [root];
+                    let treeVisited = new Set([root]);
+                    let bfsOrder = [];
+                    while(q.length) {
+                        let u = q.shift();
+                        bfsOrder.push(u);
+                        for(let v of adj[u]) {
+                            if(nodes.includes(v) && !treeVisited.has(v)) {
+                                treeVisited.add(v);
+                                parentMap[v] = u;
+                                q.push(v);
+                            }
+                        }
+                    }
+                    for (let i = bfsOrder.length - 1; i >= 0; i--) {
+                        let u = bfsOrder[i];
+                        if (u === root) continue;
+                        let bal = balances[u];
+                        let parent = parentMap[u];
+                        if (Math.abs(bal) > epsilon) {
+                            if (bal < 0) {
+                                this.settlements.push({ fromId: u, toId: parent, amount: Math.abs(bal), type: 'local' });
+                            } else {
+                                this.settlements.push({ fromId: parent, toId: u, amount: bal, type: 'local' });
+                            }
+                            balances[parent] += bal;
+                            balances[parent] = Math.round(balances[parent] * m) / m;
+                            balances[u] = 0;
+                        }
+                    }
+                }
+                
+                return root;
+            },
+
+            solveGlobalDebts(participants, epsilon) {
+                let debtors = participants.filter(p => p.val < -epsilon).sort((a,b) => a.val - b.val);
+                let creditors = participants.filter(p => p.val > epsilon).sort((a,b) => b.val - a.val);
+                let i = 0, j = 0;
+                while(i < debtors.length && j < creditors.length) {
+                    let debtor = debtors[i];
+                    let creditor = creditors[j];
+                    let amount = Math.min(Math.abs(debtor.val), creditor.val);
+                    
+                    this.settlements.push({
+                        fromId: debtor.id,
+                        toId: creditor.id,
+                        amount: amount,
+                        type: 'global'
+                    });
+                    debtor.val += amount; creditor.val -= amount;
+                    if(Math.abs(debtor.val) < epsilon) i++; if(Math.abs(creditor.val) < epsilon) j++;
+                }
+            },
+
+            loadUserScenario() {
+                if (window.SCENARIO_DATA) {
+                    // Deep copy to ensure fresh data on each load
+                    this.people = JSON.parse(JSON.stringify(window.SCENARIO_DATA.people));
+                    this.groups = JSON.parse(JSON.stringify(window.SCENARIO_DATA.groups));
+                    this.expenses = JSON.parse(JSON.stringify(window.SCENARIO_DATA.expenses));
+                    this.$nextTick(() => { this.calculateSettlement(); });
+                } else {
+                    alert("Scenario data not found!");
+                }
+            }
+        }
+    });
+    app.mount('#app');
+</script>
+</body>
+</html>
