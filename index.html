@@ -6,6 +6,7 @@
     <title>NoContactSplit</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="scenario.js"></script>
     <link rel="stylesheet" href="style.css">
   </head>
@@ -672,6 +673,43 @@
               {{ copyBtnText }}
             </button>
           </div>
+          
+          <!-- Native Share Button -->
+          <div class="mt-3" v-if="canNativeShare">
+            <button
+              @click="nativeShare"
+              class="w-full bg-sky-600 hover:bg-sky-500 text-white py-2 rounded text-xs font-bold transition flex items-center justify-center gap-2"
+            >
+              <span>📤</span> 更多分享選項 (App)
+            </button>
+          </div>
+
+          <!-- Social Share Buttons (Fallback) -->
+          <div class="flex gap-2 mt-3" v-else>
+            <a
+              :href="'https://api.whatsapp.com/send?text=' + encodeURIComponent(shareUrl)"
+              target="_blank"
+              class="flex-1 bg-[#25D366] hover:bg-[#20bd5a] text-white py-2 rounded text-xs font-bold transition text-center flex items-center justify-center gap-1"
+              title="分享到 WhatsApp"
+            >
+              WhatsApp
+            </a>
+            <a
+              :href="'https://line.me/R/msg/text/?' + encodeURIComponent(shareUrl)"
+              target="_blank"
+              class="flex-1 bg-[#06C755] hover:bg-[#05b34c] text-white py-2 rounded text-xs font-bold transition text-center flex items-center justify-center gap-1"
+              title="分享到 LINE"
+            >
+              LINE
+            </a>
+            <a
+              :href="'signal://send?text=' + encodeURIComponent(shareUrl)"
+              class="flex-1 bg-[#3A76F0] hover:bg-[#3266d1] text-white py-2 rounded text-xs font-bold transition text-center flex items-center justify-center gap-1"
+              title="分享到 Signal (需安裝 App)"
+            >
+              Signal
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -703,9 +741,11 @@
             shareUrl: "",
             copyBtnText: "複製",
             activePayerId: null,
+            canNativeShare: false,
           };
         },
         mounted() {
+          this.canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
           this.hasScenarioData = !!(
             typeof SCENARIO_DATA !== "undefined" && SCENARIO_DATA
           );
@@ -1142,23 +1182,36 @@
 
           generateShareLink() {
             try {
-              const data = {
-                people: this.people,
-                groups: this.groups,
-                expenses: this.expenses,
+              // Minify data structure to reduce size
+              // p: people [name], g: groups [name, leaderIdx, [memberIndices]], e: expenses [desc, payerIdx, amount, [splitIndices]]
+              
+              // Create ID to Index map (1-based)
+              const idMap = {};
+              this.people.forEach((p, i) => {
+                idMap[p.id] = i + 1;
+              });
+
+              const minData = {
+                p: this.people.map(p => p.name),
+                g: this.groups.map(g => [
+                  g.name,
+                  idMap[g.leaderId],
+                  g.memberIds.map(mid => idMap[mid])
+                ]),
+                e: this.expenses.map(exp => [
+                  exp.desc,
+                  idMap[exp.payerId],
+                  exp.amount,
+                  exp.splitIds.map(sid => idMap[sid])
+                ])
               };
-              const json = JSON.stringify(data);
-              // UTF-8 safe encoding
-              const base64 = btoa(
-                encodeURIComponent(json).replace(
-                  /%([0-9A-F]{2})/g,
-                  function toSolidBytes(match, p1) {
-                    return String.fromCharCode("0x" + p1);
-                  }
-                )
-              );
+
+              const json = JSON.stringify(minData);
+              // Use LZString for compression
+              const compressed = LZString.compressToEncodedURIComponent(json);
+              
               const url = new URL(window.location.href);
-              url.searchParams.set("data", base64);
+              url.searchParams.set("d", compressed); // Use 'd' for compressed data
               this.shareUrl = url.toString();
               this.copyBtnText = "複製";
             } catch (e) {
@@ -1174,8 +1227,69 @@
             });
           },
 
+          nativeShare() {
+            if (navigator.share) {
+              navigator
+                .share({
+                  title: "分帳計算結果",
+                  text: "這是我們的人際關係分帳計算結果，請查看：",
+                  url: this.shareUrl,
+                })
+                .catch((error) => console.log("Error sharing", error));
+            } else {
+              alert("您的瀏覽器不支援原生分享功能，請使用複製連結。");
+            }
+          },
+
           loadFromUrl() {
             const params = new URLSearchParams(window.location.search);
+            
+            // Try loading compressed data first ('d')
+            const compressed = params.get("d");
+            if (compressed) {
+              try {
+                const json = LZString.decompressFromEncodedURIComponent(compressed);
+                const minData = JSON.parse(json);
+                
+                if (minData.p) {
+                  // Reconstruct People
+                  this.people = minData.p.map((name, i) => ({
+                    id: i + 1,
+                    name: name
+                  }));
+                  
+                  // Index to ID map (1-based index -> ID)
+                  // Since we just assigned IDs 1..N, index i corresponds to ID i+1
+                  
+                  // Reconstruct Groups
+                  if (minData.g) {
+                    this.groups = minData.g.map(g => ({
+                      name: g[0],
+                      leaderId: g[1], // Index is same as ID in this reconstruction
+                      memberIds: g[2]
+                    }));
+                  }
+                  
+                  // Reconstruct Expenses
+                  if (minData.e) {
+                    this.expenses = minData.e.map(e => ({
+                      desc: e[0],
+                      payerId: e[1],
+                      amount: e[2],
+                      splitIds: e[3],
+                      showDetails: false
+                    }));
+                  }
+                }
+                
+                this.finishLoading();
+                return;
+              } catch (e) {
+                console.error("Error loading compressed data", e);
+              }
+            }
+
+            // Fallback to legacy base64 data ('data')
             const base64 = params.get("data");
             if (base64) {
               try {
@@ -1196,25 +1310,29 @@
                 if (data.groups) this.groups = data.groups;
                 if (data.expenses) this.expenses = data.expenses;
 
-                // Update nextId to avoid conflicts
-                if (this.people.length > 0) {
-                  this.nextId = Math.max(...this.people.map((p) => p.id)) + 1;
-                }
-
-                this.$nextTick(() => {
-                  this.calculateSettlement();
-                  // Clean URL without reloading
-                  window.history.replaceState(
-                    {},
-                    document.title,
-                    window.location.pathname
-                  );
-                });
+                this.finishLoading();
               } catch (e) {
                 console.error("Error loading data from URL", e);
                 alert("無法載入分享的資料，連結可能已損壞。");
               }
             }
+          },
+
+          finishLoading() {
+            // Update nextId to avoid conflicts
+            if (this.people.length > 0) {
+              this.nextId = Math.max(...this.people.map((p) => p.id)) + 1;
+            }
+
+            this.$nextTick(() => {
+              this.calculateSettlement();
+              // Clean URL without reloading
+              window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname
+              );
+            });
           },
 
           loadUserScenario() {
