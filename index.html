@@ -3,53 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>人際關係分帳計算機</title>
+    <title>分帳計算機</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="scenario.js"></script>
-    <style>
-      body {
-        font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
-      }
-      .fade-enter-active,
-      .fade-leave-active {
-        transition: opacity 0.3s;
-      }
-      .fade-enter-from,
-      .fade-leave-to {
-        opacity: 0;
-      }
-      .cursor-pointer {
-        cursor: pointer;
-      }
-
-      /* 捲軸美化 */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #f5f5f4;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #a7f3d0;
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #34d399;
-      }
-
-      /* 計算機按鈕 */
-      .calc-btn {
-        @apply bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold py-3 rounded active:bg-stone-300 transition select-none;
-      }
-      .calc-btn-op {
-        @apply bg-emerald-100 hover:bg-emerald-200 text-emerald-700;
-      }
-      .calc-btn-eq {
-        @apply bg-emerald-500 hover:bg-emerald-600 text-white col-span-2;
-      }
-    </style>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body class="bg-stone-100 text-stone-800 min-h-screen">
     <div
@@ -60,13 +18,10 @@
       <!-- Header -->
       <header class="mb-8 text-center relative">
         <h1 class="text-3xl font-bold text-emerald-700 mb-2 tracking-wide">
-          💸 人際關係分帳計算機
+          💸 分帳計算機
         </h1>
         <p class="text-stone-500 text-sm">
-          圈內成員優先互轉，減少圈主轉手負擔，圈主負責跨圈結算。
-        </p>
-        <p class="text-stone-500 text-sm">
-          💡 名字前有 👑 代表該人員為圈子的核心(圈主)。
+            可以根據人員圈子進行分帳計算，圈內成員優先互轉，圈主負責跨圈結算，即使沒有所有人員付款方式都可以付款。
         </p>
 
         <div class="flex justify-center gap-4 mt-4 items-center flex-wrap">
@@ -102,8 +57,8 @@
       </header>
 
       <!-- Main Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <!-- 區塊 1：人員與圈子 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 區塊 1：人員 -->
         <div
           class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex flex-col"
         >
@@ -112,7 +67,7 @@
               class="bg-emerald-100 text-emerald-600 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm"
               >1</span
             >
-            人員與圈子
+            人員
           </h2>
 
           <!-- 新增人員 -->
@@ -133,7 +88,7 @@
           </div>
 
           <!-- 人員列表 (含財務摘要) -->
-          <div class="overflow-y-auto max-h-60 mb-4 pr-1">
+          <div class="overflow-y-auto flex-1 min-h-[15rem] mb-4 pr-1">
             <h3
               class="text-xs font-bold text-stone-400 uppercase mb-2 tracking-wider"
             >
@@ -150,57 +105,356 @@
               <div
                 v-for="p in people"
                 :key="p.id"
-                class="flex items-center justify-between bg-stone-50 px-3 py-2 rounded-lg border border-stone-100 hover:border-emerald-200 transition group"
+                class="bg-white rounded-lg border border-stone-200 overflow-hidden shadow-sm transition-all hover:border-emerald-300 hover:shadow-md mb-3"
               >
-                <div class="flex items-center gap-2">
-                  <!-- 如果是圈主，顯示皇冠 -->
-                  <span v-if="isLeader(p.id)" class="text-sm" title="圈主"
-                    >👑</span
-                  >
-                  <span class="font-bold text-stone-700">{{ p.name }}</span>
-                  <button
-                    @click="removePerson(p.id)"
-                    class="text-stone-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
-                  >
-                    ×
-                  </button>
+                <!-- Person Row -->
+                <div class="flex items-center justify-between px-3 py-2.5 bg-stone-100 border-b border-stone-200">
+                  <div class="flex items-center gap-2">
+                    <span v-if="isLeader(p.id)" class="text-sm" title="圈主"
+                      >👑</span
+                    >
+                    <span class="font-bold text-stone-800">{{ p.name }}</span>
+                    <button
+                      @click="removePerson(p.id)"
+                      class="text-stone-400 hover:text-red-400 text-lg leading-none px-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <!-- 財務摘要 -->
+                    <div
+                      class="flex items-center gap-2 text-[10px] sm:text-xs font-medium"
+                    >
+                      <div
+                        class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded"
+                        title="總已付金額"
+                      >
+                        墊 ${{ formatMoney(personStats[p.id].paid) }}
+                      </div>
+                      <div
+                        v-if="personStats[p.id].net > 0.001"
+                        class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200"
+                        title="淨收入 (應收)"
+                      >
+                        收 ${{ formatMoney(personStats[p.id].net) }}
+                      </div>
+                      <div
+                        v-else-if="personStats[p.id].net < -0.001"
+                        class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200"
+                        title="淨支出 (應付)"
+                      >
+                        付 ${{ formatMoney(Math.abs(personStats[p.id].net)) }}
+                      </div>
+                      <div v-else class="text-stone-300 px-1">-</div>
+                    </div>
+
+                    <!-- Add Expense Button -->
+                    <button
+                      @click="openExpenseForm(p.id)"
+                      class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-2 py-1 rounded text-xs font-bold transition flex items-center gap-1"
+                    >
+                      <span>➕</span> <span class="hidden sm:inline">記帳</span>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- 財務摘要 -->
+                <!-- Expense Form (Accordion) -->
                 <div
-                  class="flex items-center gap-2 text-[10px] sm:text-xs font-medium"
+                  v-if="activePayerId === p.id"
+                  class="bg-white p-3 border-t border-stone-100 animate-fade-in shadow-inner"
                 >
-                  <!-- 墊 (灰色) -->
-                  <div
-                    class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded"
-                    title="總已付金額"
-                  >
-                    墊 ${{ formatMoney(personStats[p.id].paid) }}
-                  </div>
+                  <div class="space-y-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="text-xs font-bold text-emerald-600"
+                        >新增消費 (墊款人: {{ p.name }})</span
+                      >
+                      <button
+                        @click="activePayerId = null"
+                        class="text-stone-400 hover:text-stone-600 text-xs"
+                      >
+                        取消
+                      </button>
+                    </div>
 
-                  <!-- 收 (綠色) / 付 (紅色) -->
-                  <div
-                    v-if="personStats[p.id].net > 0.001"
-                    class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200"
-                    title="淨收入 (應收)"
-                  >
-                    收 ${{ formatMoney(personStats[p.id].net) }}
+                    <div class="flex gap-2 items-center relative">
+                      <input
+                        v-model="expenseDesc"
+                        type="text"
+                        placeholder="消費項目"
+                        class="flex-[2] border border-stone-300 rounded px-2 py-1.5 text-sm focus:outline-emerald-500 min-w-0"
+                      />
+
+                      <div class="flex-1 flex relative min-w-[100px]">
+                        <input
+                          v-model.number="amount"
+                          type="number"
+                          min="0"
+                          placeholder="$"
+                          class="flex-1 border border-stone-300 p-1.5 rounded-l w-full focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm"
+                        />
+                        <button
+                          @click.stop="toggleCalculator"
+                          class="bg-stone-100 px-2 rounded-r border-y border-r border-stone-300 hover:bg-stone-200 text-stone-600"
+                        >
+                          🧮
+                        </button>
+
+                        <!-- Calculator -->
+                        <div
+                          v-if="showCalculator"
+                          @click.stop
+                          class="absolute top-10 right-0 w-56 bg-white shadow-xl rounded-xl border border-stone-200 z-50 p-3"
+                        >
+                          <div
+                            class="bg-stone-800 text-emerald-300 text-right p-2 rounded mb-2 text-lg font-mono overflow-hidden h-10 flex items-center justify-end shadow-inner"
+                          >
+                            {{ calcDisplay || '0' }}
+                          </div>
+                          <div class="grid grid-cols-4 gap-1">
+                            <button
+                              @click="calcClear"
+                              class="text-red-400 bg-red-50 hover:bg-red-100 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              C
+                            </button>
+                            <button
+                              @click="calcAppend('/')"
+                              class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              ÷
+                            </button>
+                            <button
+                              @click="calcAppend('*')"
+                              class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              ×
+                            </button>
+                            <button
+                              @click="calcBackspace"
+                              class="text-stone-400 bg-stone-100 hover:bg-stone-200 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              ⌫
+                            </button>
+
+                            <button
+                              @click="calcAppend('7')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              7
+                            </button>
+                            <button
+                              @click="calcAppend('8')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              8
+                            </button>
+                            <button
+                              @click="calcAppend('9')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              9
+                            </button>
+                            <button
+                              @click="calcAppend('-')"
+                              class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              -
+                            </button>
+
+                            <button
+                              @click="calcAppend('4')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              4
+                            </button>
+                            <button
+                              @click="calcAppend('5')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              5
+                            </button>
+                            <button
+                              @click="calcAppend('6')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              6
+                            </button>
+                            <button
+                              @click="calcAppend('+')"
+                              class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              +
+                            </button>
+
+                            <button
+                              @click="calcAppend('1')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              1
+                            </button>
+                            <button
+                              @click="calcAppend('2')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              2
+                            </button>
+                            <button
+                              @click="calcAppend('3')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              3
+                            </button>
+                            <button
+                              @click="calcResult"
+                              class="bg-emerald-500 hover:bg-emerald-600 text-white col-span-2 text-sm row-span-2 flex items-center justify-center rounded-br shadow-md font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              =
+                            </button>
+
+                            <button
+                              @click="calcAppend('0')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 col-span-2 rounded-bl py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              0
+                            </button>
+                            <button
+                              @click="calcAppend('.')"
+                              class="bg-stone-100 hover:bg-stone-200 text-stone-600 py-2 text-sm font-bold rounded active:bg-stone-300 transition select-none"
+                            >
+                              .
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Split Among -->
+                    <div
+                      class="bg-stone-50 p-2 rounded border border-stone-100"
+                    >
+                      <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] font-bold text-stone-500"
+                          >分攤給:</span
+                        >
+                        <div class="space-x-1">
+                          <button
+                            @click="splitAll"
+                            class="text-[10px] bg-white border border-stone-200 px-1 rounded hover:bg-stone-50"
+                          >
+                            全選
+                          </button>
+                          <button
+                            @click="splitNone"
+                            class="text-[10px] bg-white border border-stone-200 px-1 rounded hover:bg-stone-50"
+                          >
+                            清空
+                          </button>
+                        </div>
+                      </div>
+                      <div
+                        class="grid grid-cols-3 gap-1 max-h-24 overflow-y-auto"
+                      >
+                        <label
+                          v-for="sp in people"
+                          :key="'s-'+sp.id"
+                          class="flex items-center space-x-1 text-[10px] cursor-pointer select-none hover:bg-stone-100 rounded px-1"
+                        >
+                          <input
+                            type="checkbox"
+                            :value="sp.id"
+                            v-model="splitAmong"
+                            class="rounded text-emerald-500 border-stone-300"
+                          />
+                          <span>{{ sp.name }}</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      @click="addExpense"
+                      :disabled="!isValidExpense"
+                      class="w-full bg-emerald-600 text-white py-2 rounded text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm"
+                    >
+                      新增
+                    </button>
                   </div>
+                </div>
+
+                <!-- Expense List for Person -->
+                <div
+                  v-if="getPersonExpenses(p.id).length > 0"
+                  class="bg-white"
+                >
                   <div
-                    v-else-if="personStats[p.id].net < -0.001"
-                    class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200"
-                    title="淨支出 (應付)"
+                    v-for="(exp, idx) in getPersonExpenses(p.id)"
+                    :key="idx"
+                    class="border-b border-stone-100 last:border-0"
                   >
-                    付 ${{ formatMoney(Math.abs(personStats[p.id].net)) }}
+                    <div
+                      @click="toggleExpenseDetails(exp.originalIndex)"
+                      class="px-3 py-2 flex justify-between items-center text-xs hover:bg-emerald-50 transition group cursor-pointer pl-4 border-l-4 border-transparent hover:border-emerald-300"
+                    >
+                      <div
+                        class="flex-1 flex items-center gap-2 overflow-hidden"
+                      >
+                        <span class="font-bold text-emerald-600 min-w-[3rem]"
+                          >${{ formatMoney(exp.amount) }}</span
+                        >
+                        <span class="text-stone-600 truncate" :title="exp.desc"
+                          >{{ exp.desc }}</span
+                        >
+                        <span
+                          class="text-[10px] text-stone-400 bg-white px-1 rounded border border-stone-200"
+                          title="分攤人數"
+                        >
+                          {{ exp.splitIds.length }}人
+                        </span>
+                      </div>
+                      <button
+                        @click.stop="removeExpense(exp.originalIndex)"
+                        class="text-stone-300 hover:text-red-400 px-1 opacity-0 group-hover:opacity-100 transition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div
+                      v-if="exp.showDetails"
+                      class="px-3 py-2 bg-stone-100 text-[10px] text-stone-500 border-t border-stone-200/50 shadow-inner pl-4 border-l-4 border-transparent"
+                    >
+                      <div class="font-bold mb-1">分攤成員:</div>
+                      <div class="flex flex-wrap gap-1">
+                        <span
+                          v-for="sid in exp.splitIds"
+                          :key="sid"
+                          class="bg-white px-1.5 py-0.5 rounded border border-stone-200"
+                        >
+                          {{ getPersonName(sid) }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <!-- 平帳時 -->
-                  <div v-else class="text-stone-300 px-1">-</div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <hr class="border-stone-100 mb-4" />
+        <!-- 區塊 2：圈子 -->
+        <div
+          class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex flex-col"
+        >
+          <h2 class="text-xl font-bold mb-4 flex items-center text-stone-700">
+            <span
+              class="bg-emerald-100 text-emerald-600 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm"
+              >2</span
+            >
+            圈子
+          </h2>
+          <p class="text-stone-500 text-sm mb-4">
+            💡 名字前有 👑 代表該人員為圈子的核心(圈主)。
+          </p>
 
           <!-- 建立圈子 -->
           <div v-if="people.length > 1" class="mb-4">
@@ -245,29 +499,29 @@
 
               <div class="mb-3">
                 <label class="block text-[10px] text-stone-500 mb-1 font-bold"
-                  >選擇成員</label
-                >
-                <div
-                  class="bg-white border border-stone-200 rounded p-2 max-h-24 overflow-y-auto grid grid-cols-2 gap-2"
-                >
-                  <label
-                    v-for="p in people"
-                    :key="'g-'+p.id"
-                    class="flex items-center gap-2 text-sm cursor-pointer hover:bg-stone-50 p-1 rounded transition select-none"
+                  >選擇成員
+                  <div
+                    class="bg-white border border-stone-200 rounded p-2 max-h-48 overflow-y-auto grid grid-cols-3 gap-2"
                   >
-                    <input
-                      type="checkbox"
-                      :value="p.id"
-                      v-model="groupMemberIds"
-                      :disabled="p.id === groupLeaderId"
-                      class="rounded text-emerald-500 focus:ring-emerald-500"
-                    />
-                    <span
-                      :class="{'text-stone-300 line-through': p.id === groupLeaderId}"
-                      >{{ p.name }}</span
+                    <label
+                      v-for="p in people"
+                      :key="'g-'+p.id"
+                      class="flex items-center gap-2 text-sm cursor-pointer hover:bg-stone-50 p-1 rounded transition select-none"
                     >
-                  </label>
-                </div>
+                      <input
+                        type="checkbox"
+                        :value="p.id"
+                        v-model="groupMemberIds"
+                        :disabled="p.id === groupLeaderId"
+                        class="rounded text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <span
+                        :class="{'text-stone-300 line-through': p.id === groupLeaderId}"
+                        >{{ p.name }}</span
+                      >
+                    </label>
+                  </div>
+                </label>
               </div>
 
               <button
@@ -317,294 +571,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 區塊 2：消費 -->
-        <div
-          class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex flex-col relative"
-        >
-          <h2 class="text-xl font-bold mb-4 flex items-center text-stone-700">
-            <span
-              class="bg-emerald-100 text-emerald-600 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm"
-              >2</span
-            >
-            輸入消費
-          </h2>
-
-          <div
-            v-if="people.length < 2"
-            class="py-10 flex items-center justify-center text-stone-400 italic"
-          >
-            請先在左側新增至少兩位人員
-          </div>
-
-          <div v-else class="flex flex-col">
-            <!-- 輸入表單 -->
-            <div
-              class="space-y-3 mb-4 bg-stone-50 p-4 rounded-xl border border-stone-100"
-            >
-              <input
-                v-model="expenseDesc"
-                type="text"
-                placeholder="消費項目 (例如: 晚餐)"
-                class="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500 bg-white"
-              />
-
-              <div class="flex gap-2 items-center">
-                <span class="text-xs w-12 text-stone-500 font-bold text-right"
-                  >墊款人</span
-                >
-                <select
-                  v-model="payerId"
-                  class="flex-1 border border-stone-300 p-2 rounded-lg bg-white text-sm focus:outline-emerald-500"
-                >
-                  <option v-for="p in people" :value="p.id">
-                    {{ p.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="flex gap-2 items-center relative">
-                <span class="text-xs w-12 text-stone-500 font-bold text-right"
-                  >金額 $</span
-                >
-                <div class="flex-1 flex relative">
-                  <input
-                    v-model.number="amount"
-                    type="number"
-                    min="0"
-                    class="flex-1 border border-stone-300 p-2 rounded-l-lg w-full focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                  />
-                  <button
-                    @click.stop="toggleCalculator"
-                    class="bg-stone-200 px-3 rounded-r-lg text-lg border-y border-r border-stone-300 hover:bg-stone-300 transition text-stone-600"
-                    title="開啟計算機"
-                  >
-                    🧮
-                  </button>
-
-                  <!-- 計算機彈出 -->
-                  <div
-                    v-if="showCalculator"
-                    @click.stop
-                    class="absolute top-12 right-0 w-64 bg-white shadow-xl rounded-xl border border-stone-200 z-50 p-4 animate-fade-in"
-                  >
-                    <div
-                      class="bg-stone-800 text-emerald-300 text-right p-3 rounded mb-3 text-xl font-mono overflow-hidden h-14 flex items-center justify-end shadow-inner"
-                    >
-                      {{ calcDisplay || '0' }}
-                    </div>
-                    <div class="grid grid-cols-4 gap-2">
-                      <button
-                        @click="calcClear"
-                        class="calc-btn text-red-400 bg-red-50 hover:bg-red-100"
-                      >
-                        C
-                      </button>
-                      <button
-                        @click="calcAppend('/')"
-                        class="calc-btn calc-btn-op"
-                      >
-                        ÷
-                      </button>
-                      <button
-                        @click="calcAppend('*')"
-                        class="calc-btn calc-btn-op"
-                      >
-                        ×
-                      </button>
-                      <button
-                        @click="calcBackspace"
-                        class="calc-btn text-stone-400"
-                      >
-                        ⌫
-                      </button>
-
-                      <button @click="calcAppend('7')" class="calc-btn">
-                        7
-                      </button>
-                      <button @click="calcAppend('8')" class="calc-btn">
-                        8
-                      </button>
-                      <button @click="calcAppend('9')" class="calc-btn">
-                        9
-                      </button>
-                      <button
-                        @click="calcAppend('-')"
-                        class="calc-btn calc-btn-op"
-                      >
-                        -
-                      </button>
-
-                      <button @click="calcAppend('4')" class="calc-btn">
-                        4
-                      </button>
-                      <button @click="calcAppend('5')" class="calc-btn">
-                        5
-                      </button>
-                      <button @click="calcAppend('6')" class="calc-btn">
-                        6
-                      </button>
-                      <button
-                        @click="calcAppend('+')"
-                        class="calc-btn calc-btn-op"
-                      >
-                        +
-                      </button>
-
-                      <button @click="calcAppend('1')" class="calc-btn">
-                        1
-                      </button>
-                      <button @click="calcAppend('2')" class="calc-btn">
-                        2
-                      </button>
-                      <button @click="calcAppend('3')" class="calc-btn">
-                        3
-                      </button>
-                      <button
-                        @click="calcResult"
-                        class="calc-btn calc-btn-eq text-lg row-span-2 flex items-center justify-center rounded-br-lg shadow-md"
-                      >
-                        =
-                      </button>
-
-                      <button
-                        @click="calcAppend('0')"
-                        class="calc-btn col-span-2 rounded-bl-lg"
-                      >
-                        0
-                      </button>
-                      <button @click="calcAppend('.')" class="calc-btn">
-                        .
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 分攤者 -->
-              <div class="bg-white p-3 rounded-lg border border-stone-200">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-xs font-bold text-stone-500"
-                    >誰要分攤?</span
-                  >
-                  <div class="space-x-2">
-                    <button
-                      @click="splitAll"
-                      class="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded"
-                    >
-                      全選
-                    </button>
-                    <button
-                      @click="splitNone"
-                      class="text-[10px] text-stone-400 hover:text-stone-600 bg-stone-100 px-2 py-0.5 rounded"
-                    >
-                      清空
-                    </button>
-                  </div>
-                </div>
-                <div
-                  class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-24 overflow-y-auto"
-                >
-                  <label
-                    v-for="p in people"
-                    :key="'split-'+p.id"
-                    class="flex items-center space-x-2 text-xs cursor-pointer hover:bg-stone-50 p-1 rounded transition select-none"
-                  >
-                    <input
-                      type="checkbox"
-                      :value="p.id"
-                      v-model="splitAmong"
-                      class="rounded text-emerald-500 focus:ring-emerald-500 border-stone-300"
-                    />
-                    <span>{{ p.name }}</span>
-                  </label>
-                </div>
-              </div>
-
-              <button
-                @click="addExpense"
-                :disabled="!isValidExpense"
-                class="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md"
-              >
-                新增此筆消費
-              </button>
-            </div>
-
-            <!-- 消費列表 (已排序) -->
-            <div
-              class="overflow-y-auto max-h-96 bg-stone-50 rounded-xl p-2 border border-stone-200"
-            >
-              <div
-                v-if="expenses.length === 0"
-                class="py-10 flex flex-col items-center justify-center text-stone-400 italic text-sm"
-              >
-                <span>尚未輸入任何消費</span>
-              </div>
-              <ul class="space-y-2">
-                <!-- 使用 sortedExpenses 進行渲染 -->
-                <li
-                  v-for="(exp, idx) in sortedExpenses"
-                  :key="idx"
-                  class="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden transition-all hover:border-emerald-300 group"
-                >
-                  <div
-                    @click="toggleExpenseDetails(exp.originalIndex)"
-                    class="p-3 flex justify-between items-center cursor-pointer select-none"
-                  >
-                    <div class="flex-1">
-                      <span class="font-bold text-stone-700"
-                        >{{ getPersonName(exp.payerId) }}</span
-                      >
-                      <span class="text-stone-400 text-xs mx-1">墊</span>
-                      <span class="font-bold text-emerald-600 text-base"
-                        >${{ formatMoney(exp.amount) }}</span
-                      >
-                      <span class="text-stone-500 text-xs ml-2"
-                        >({{ exp.desc }})</span
-                      >
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="text-[10px] text-stone-400 bg-stone-50 px-2 py-1 rounded border border-stone-100 group-hover:bg-emerald-50 group-hover:text-emerald-500 group-hover:border-emerald-100 transition"
-                        v-if="!exp.showDetails"
-                        >詳情</span
-                      >
-                      <button
-                        @click.stop="removeExpense(exp.originalIndex)"
-                        class="text-stone-300 hover:text-red-400 text-lg leading-none px-1"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    v-if="exp.showDetails"
-                    class="bg-emerald-50/50 p-2 pl-4 text-xs text-stone-600 border-t border-emerald-100 animate-fade-in"
-                  >
-                    <div
-                      class="font-bold mb-1 text-emerald-700 flex justify-between"
-                    >
-                      <span>分攤名單 ({{ exp.splitIds.length }}人)</span>
-                      <span
-                        >每人 ${{ formatMoney(exp.amount / exp.splitIds.length)
-                        }}</span
-                      >
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                      <span
-                        v-for="sid in exp.splitIds"
-                        :key="sid"
-                        class="bg-white border border-emerald-100 px-2 py-0.5 rounded text-stone-600 shadow-sm"
-                      >
-                        {{ getPersonName(sid) }}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 區塊 3：結算 (Slate Theme) -->
@@ -650,11 +616,11 @@
                 class="text-[10px] bg-slate-900 text-slate-300 px-2 py-1 rounded border border-slate-600 shadow uppercase tracking-wider"
                 >圈內互轉</span
               >
-              <span
+              <!-- <span
                 v-else
                 class="text-[10px] bg-emerald-900/50 text-emerald-300 px-2 py-1 rounded border border-emerald-800 shadow uppercase tracking-wider"
                 >跨圈結算</span
-              >
+              > -->
             </div>
             <div
               class="text-xl font-mono font-bold text-emerald-400 tracking-wide"
@@ -666,7 +632,7 @@
             class="mt-4 text-sm text-slate-400 text-center bg-slate-900/50 p-2 rounded-lg border border-slate-700/50"
           >
             💡
-            「圈內互轉」：成員之間直接轉帳，餘額由圈主承接；「跨圈結算」：由圈主代表圈子結算。
+            「圈內互轉」：圈內成員之間直接轉帳，餘額由圈主承接
           </div>
         </div>
 
@@ -733,6 +699,7 @@
             hasScenarioData: false,
             shareUrl: "",
             copyBtnText: "複製",
+            activePayerId: null,
           };
         },
         mounted() {
@@ -822,6 +789,7 @@
             this.newPersonName = "";
           },
           removePerson(id) {
+            if (this.activePayerId === id) this.activePayerId = null;
             this.people = this.people.filter((p) => p.id !== id);
             this.groups = this.groups.filter((g) => g.leaderId !== id);
             this.groups.forEach((g) => {
@@ -834,6 +802,12 @@
           },
           getPersonName(id) {
             return this.people.find((p) => p.id === id)?.name || "未知";
+          },
+
+          getPersonExpenses(personId) {
+            return this.expenses
+              .map((e, i) => ({ ...e, originalIndex: i }))
+              .filter((e) => e.payerId === personId);
           },
 
           isLeader(id) {
@@ -860,6 +834,19 @@
             this.groups.splice(idx, 1);
           },
 
+          openExpenseForm(personId) {
+            if (this.activePayerId === personId) {
+              this.activePayerId = null;
+              return;
+            }
+            this.activePayerId = personId;
+            this.payerId = personId;
+            this.expenseDesc = "";
+            this.amount = 0;
+            this.splitAmong = this.people.map((p) => p.id);
+            this.showCalculator = false;
+          },
+
           splitAll() {
             this.splitAmong = this.people.map((p) => p.id);
           },
@@ -878,6 +865,7 @@
             });
             this.expenseDesc = "";
             this.amount = 0;
+            this.activePayerId = null;
           },
 
           // 修正：刪除需使用原始 Index
