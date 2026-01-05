@@ -727,7 +727,6 @@
             groupMemberIds: [],
             groups: [],
             expenseDesc: "",
-            payerId: null,
             amount: 0,
             splitAmong: [],
             expenses: [],
@@ -758,7 +757,7 @@
           isValidExpense() {
             return (
               this.expenseDesc &&
-              this.payerId &&
+              this.activePayerId &&
               this.amount > 0 &&
               this.splitAmong.length > 0
             );
@@ -766,19 +765,6 @@
 
           leaderIds() {
             return new Set(this.groups.map((g) => g.leaderId));
-          },
-
-          // 1. 列表排序邏輯：依 PayerID 分組
-          sortedExpenses() {
-            // 回傳帶有原始索引的新陣列
-            return this.expenses
-              .map((e, i) => ({ ...e, originalIndex: i }))
-              .sort((a, b) => {
-                // 先排 ID
-                if (a.payerId !== b.payerId) return a.payerId - b.payerId;
-                // 再排輸入順序
-                return a.originalIndex - b.originalIndex;
-              });
           },
 
           personStats() {
@@ -883,7 +869,6 @@
               return;
             }
             this.activePayerId = personId;
-            this.payerId = personId;
             this.expenseDesc = "";
             this.amount = 0;
             this.splitAmong = this.people.map((p) => p.id);
@@ -902,7 +887,7 @@
             this.expenses.push({
               desc: this.expenseDesc,
               payerId: this.payerId,
-              amount: this.amount,
+              amount: this.aactivePount,
               splitIds: [...this.splitAmong],
               showDetails: false,
             });
