@@ -37,6 +37,13 @@
             📂 載入真實案例
           </button>
 
+          <button
+            @click="clearAllData"
+            class="text-xs bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-full text-red-600 transition font-medium"
+          >
+            🗑️ 清空資料
+          </button>
+
           <!-- 小數點設定 -->
           <div
             class="flex items-center bg-white rounded-full px-1 py-0.5 border border-emerald-200 shadow-sm"
@@ -1338,6 +1345,27 @@
             } else {
               alert("Scenario data not found!");
             }
+          },
+
+          clearAllData() {
+            if (!confirm("確定要清空所有資料嗎？此動作無法復原。")) return;
+            this.people = [];
+            this.groups = [];
+            this.expenses = [];
+            this.settlements = [];
+            this.calculated = false;
+            this.nextId = 1;
+            this.shareUrl = "";
+            this.activePayerId = null;
+            this.expenseDesc = "";
+            this.amount = 0;
+            this.splitAmong = [];
+            this.groupName = "";
+            this.groupLeaderId = null;
+            this.groupMemberIds = [];
+            
+            // Clear URL params
+            window.history.replaceState({}, document.title, window.location.pathname);
           },
         },
       });
