@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="scenario.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body class="bg-stone-100 text-stone-800 min-h-screen">
     <div
@@ -21,11 +21,9 @@
         <h1 class="text-3xl font-bold text-emerald-700 mb-2 tracking-wide">
           💸 NoContactSplit
         </h1>
+        <p class="text-stone-500 text-sm">圈子自動結算神器 / 零麻煩AA制</p>
         <p class="text-stone-500 text-sm">
-            圈子自動結算神器 / 零麻煩AA制
-        </p>
-        <p class="text-stone-500 text-sm">
-            可以根據人員圈子進行分帳計算，圈內成員優先互轉，圈主負責跨圈結算，即使沒有所有人員付款方式都可以付款。
+          可以根據人員圈子進行分帳計算，圈內成員優先互轉，圈主負責跨圈結算，即使沒有所有人員付款方式都可以付款。
         </p>
 
         <div class="flex justify-center gap-4 mt-4 items-center flex-wrap">
@@ -97,29 +95,37 @@
               新增
             </button>
           </div>
-          
-           <!-- Suggested People & Teams -->
+
+          <!-- Suggested People & Teams -->
           <div class="mb-4 space-y-2 animate-fade-in">
-             <!-- Individual People -->
-             <div v-if="suggestedPeople.length > 0" class="flex flex-wrap gap-2 items-center">
-                <span class="text-xs text-stone-400 self-center">常用人員:</span>
-                <button v-for="name in suggestedPeople" :key="name" 
-                    @click="addHistoryPerson(name)"
-                    class="text-xs bg-stone-100 hover:bg-emerald-100 text-stone-600 hover:text-emerald-700 px-2 py-1 rounded-full border border-stone-200 transition"
-                >
-                    + {{ name }}
-                </button>
-             </div>
-             
-             <!-- Team Combos Button -->
-             <div v-if="teamRecords.length > 0" class="flex items-center gap-2 border-t border-stone-100 pt-2">
-                 <button 
-                     @click="showTeamRecordsModal = true"
-                     class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-3 py-1 rounded-full border border-blue-200 transition flex items-center gap-1 font-bold"
-                 >
-                     📜 常用組合 ({{ teamRecords.length }})
-                 </button>
-             </div>
+            <!-- Individual People -->
+            <div
+              v-if="suggestedPeople.length > 0"
+              class="flex flex-wrap gap-2 items-center"
+            >
+              <span class="text-xs text-stone-400 self-center">常用人員:</span>
+              <button
+                v-for="name in suggestedPeople"
+                :key="name"
+                @click="addHistoryPerson(name)"
+                class="text-xs bg-stone-100 hover:bg-emerald-100 text-stone-600 hover:text-emerald-700 px-2 py-1 rounded-full border border-stone-200 transition"
+              >
+                + {{ name }}
+              </button>
+            </div>
+
+            <!-- Team Combos Button -->
+            <div
+              v-if="teamRecords.length > 0"
+              class="flex items-center gap-2 border-t border-stone-100 pt-2"
+            >
+              <button
+                @click="showTeamRecordsModal = true"
+                class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-3 py-1 rounded-full border border-blue-200 transition flex items-center gap-1 font-bold"
+              >
+                📜 常用組合 ({{ teamRecords.length }})
+              </button>
+            </div>
           </div>
 
           <!-- 人員列表 (含財務摘要) -->
@@ -143,7 +149,9 @@
                 class="bg-white rounded-lg border border-stone-200 overflow-hidden shadow-sm transition-all hover:border-emerald-300 hover:shadow-md mb-3"
               >
                 <!-- Person Row -->
-                <div class="flex items-center justify-between px-3 py-2.5 bg-stone-100 border-b border-stone-200">
+                <div
+                  class="flex items-center justify-between px-3 py-2.5 bg-stone-100 border-b border-stone-200"
+                >
                   <div class="flex items-center gap-2">
                     <span v-if="isLeader(p.id)" class="text-sm" title="圈主"
                       >👑</span
@@ -203,7 +211,8 @@
                   <div class="space-y-2">
                     <div class="flex justify-between items-center mb-1">
                       <span class="text-xs font-bold text-emerald-600"
-                        >{{ editingExpenseIndex !== null ? '修改消費' : '新增消費' }} (墊款人: {{ p.name }})</span
+                        >{{ editingExpenseIndex !== null ? '修改消費' :
+                        '新增消費' }} (墊款人: {{ p.name }})</span
                       >
                       <button
                         @click="cancelEdit"
@@ -418,10 +427,7 @@
                 </div>
 
                 <!-- Expense List for Person -->
-                <div
-                  v-if="getPersonExpenses(p.id).length > 0"
-                  class="bg-white"
-                >
+                <div v-if="getPersonExpenses(p.id).length > 0" class="bg-white">
                   <div
                     v-for="(exp, idx) in getPersonExpenses(p.id)"
                     :key="idx"
@@ -506,57 +512,76 @@
               >
                 🔗 建立圈子
                 <div class="ml-auto flex items-center gap-2">
-                    <button v-if="historyGroups.length > 0"
-                        @click="showHistoryGroups = !showHistoryGroups"
-                        class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 hover:bg-emerald-100 transition"
-                    >
-                        {{ showHistoryGroups ? '隱藏記錄' : '從記錄載入' }}
-                    </button>
-                    <span class="text-[10px] text-stone-400 font-normal hidden sm:inline"
+                  <button
+                    v-if="historyGroups.length > 0"
+                    @click="showHistoryGroups = !showHistoryGroups"
+                    class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 hover:bg-emerald-100 transition"
+                  >
+                    {{ showHistoryGroups ? '隱藏記錄' : '從記錄載入' }}
+                  </button>
+                  <span
+                    class="text-[10px] text-stone-400 font-normal hidden sm:inline"
                     >成員優先互轉，圈主對外結算</span
-                    >
+                  >
                 </div>
               </h3>
-              
+
               <!-- History Groups Selection -->
-              <div v-if="showHistoryGroups && historyGroups.length > 0" class="mb-4 bg-white border border-emerald-100 rounded-lg p-2 max-h-40 overflow-y-auto">
-                  <div v-for="(hg, idx) in historyGroups" :key="idx" 
-                       class="flex justify-between items-center p-2 hover:bg-stone-50 rounded cursor-pointer group border-b border-stone-100 last:border-0"
-                       @click="loadHistoryGroup(hg)">
-                      <div>
-                          <div class="text-xs font-bold text-emerald-700">👑 {{ hg.leaderName }} 的圈子 <span v-if="hg.name" class="bg-stone-100 text-stone-500 px-1 rounded ml-1">{{ hg.name }}</span></div>
-                          <div class="text-[10px] text-stone-500 mt-0.5">成員: {{ hg.memberNames.join(', ') }}</div>
-                      </div>
-                      <button @click.stop="deleteHistoryGroup(idx)" class="text-stone-300 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100">×</button>
+              <div
+                v-if="showHistoryGroups && historyGroups.length > 0"
+                class="mb-4 bg-white border border-emerald-100 rounded-lg p-2 max-h-40 overflow-y-auto"
+              >
+                <div
+                  v-for="(hg, idx) in historyGroups"
+                  :key="idx"
+                  class="flex justify-between items-center p-2 hover:bg-stone-50 rounded cursor-pointer group border-b border-stone-100 last:border-0"
+                  @click="loadHistoryGroup(hg)"
+                >
+                  <div>
+                    <div class="text-xs font-bold text-emerald-700">
+                      👑 {{ hg.leaderName }} 的圈子
+                      <span
+                        v-if="hg.name"
+                        class="bg-stone-100 text-stone-500 px-1 rounded ml-1"
+                        >{{ hg.name }}</span
+                      >
+                    </div>
+                    <div class="text-[10px] text-stone-500 mt-0.5">
+                      成員: {{ hg.memberNames.join(', ') }}
+                    </div>
                   </div>
+                  <button
+                    @click.stop="deleteHistoryGroup(idx)"
+                    class="text-stone-300 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
 
               <div class="flex gap-2 mb-3">
                 <div class="w-1/2">
                   <label class="block text-[10px] text-stone-500 mb-1 font-bold"
-                    >圈名</label
-                  >
-                  <input
-                    v-model="groupName"
-                    type="text"
-                    placeholder="自訂名稱"
-                    class="w-full border border-stone-300 bg-white p-1.5 rounded text-sm focus:outline-emerald-500"
-                  />
+                    >圈名<input
+                      v-model="groupName"
+                      type="text"
+                      placeholder="自訂名稱"
+                      class="w-full border border-stone-300 bg-white p-1.5 rounded text-sm focus:outline-emerald-500"
+                  /></label>
                 </div>
                 <div class="w-1/2">
                   <label
                     class="block text-[10px] text-emerald-600 mb-1 font-bold"
-                    >圈主 (核心)</label
+                    >圈主 (核心)<select
+                      v-model="groupLeaderId"
+                      class="w-full border border-emerald-200 p-1.5 rounded text-sm bg-white focus:ring-1 focus:ring-emerald-500 text-emerald-800 font-medium"
+                    >
+                      <option :value="null">選擇...</option>
+                      <option v-for="p in people" :value="p.id">
+                        {{ p.name }}
+                      </option>
+                    </select></label
                   >
-                  <select
-                    v-model="groupLeaderId"
-                    class="w-full border border-emerald-200 p-1.5 rounded text-sm bg-white focus:ring-1 focus:ring-emerald-500 text-emerald-800 font-medium"
-                  >
-                    <option :value="null">選擇...</option>
-                    <option v-for="p in people" :value="p.id">
-                      {{ p.name }}
-                    </option>
-                  </select>
                 </div>
               </div>
 
@@ -662,9 +687,7 @@
             :key="i"
             class="flex items-center justify-between bg-slate-700 p-4 rounded-xl border-l-4 border-emerald-500 animate-fade-in shadow-md hover:bg-slate-600 transition"
           >
-            <div
-              class="flex flex-wrap items-center gap-2 text-lg"
-            >
+            <div class="flex flex-wrap items-center gap-2 text-lg">
               <div class="flex items-center">
                 <span class="font-bold text-slate-200"
                   >{{ getDisplayName(s.fromId) }}</span
@@ -694,8 +717,7 @@
           <div
             class="mt-4 text-sm text-slate-400 text-center bg-slate-900/50 p-2 rounded-lg border border-slate-700/50"
           >
-            💡
-            「圈內互轉」：圈內成員之間直接轉帳，餘額由圈主承接
+            💡 「圈內互轉」：圈內成員之間直接轉帳，餘額由圈主承接
           </div>
         </div>
 
@@ -732,7 +754,7 @@
               {{ copyBtnText }}
             </button>
           </div>
-          
+
           <!-- Native Share Button -->
           <div class="mt-3" v-if="canNativeShare">
             <button
@@ -772,36 +794,78 @@
         </div>
       </div>
       <!-- Team Records Modal -->
-      <div v-if="showTeamRecordsModal" class="fixed inset-0 bg-stone-900/50 flex items-center justify-center p-4 z-50 animate-fade-in" @click.self="showTeamRecordsModal = false">
-        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col overflow-hidden">
-          <div class="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-             <h3 class="font-bold text-stone-700">📜 常用人員與圈子組合</h3>
-             <button @click="showTeamRecordsModal = false" class="text-stone-400 hover:text-stone-600 font-bold px-2">×</button>
+      <div
+        v-if="showTeamRecordsModal"
+        class="fixed inset-0 bg-stone-900/50 flex items-center justify-center p-4 z-50 animate-fade-in"
+        @click.self="showTeamRecordsModal = false"
+      >
+        <div
+          class="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col overflow-hidden"
+        >
+          <div
+            class="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50"
+          >
+            <h3 class="font-bold text-stone-700">📜 常用人員與圈子組合</h3>
+            <button
+              @click="showTeamRecordsModal = false"
+              class="text-stone-400 hover:text-stone-600 font-bold px-2"
+            >
+              ×
+            </button>
           </div>
           <div class="overflow-y-auto p-4 space-y-3 bg-stone-50/50 flex-1">
-             <div v-if="teamRecords.length === 0" class="text-center text-stone-400 text-sm py-4">暫無記錄</div>
-             <div v-for="(rec, idx) in teamRecords" :key="rec.id" 
-                  class="bg-white p-3 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition cursor-pointer relative group"
-                  @click="loadTeamRecord(rec); showTeamRecordsModal = false">
-                  <div class="flex justify-between items-start mb-2">
-                      <div class="text-xs text-stone-500 font-mono">{{ rec.timestamp }}</div>
-                      <button @click.stop="deleteTeamRecord(idx)" class="text-stone-300 hover:text-red-400 text-sm p-1 rounded hover:bg-stone-100 transition">🗑️</button>
-                  </div>
-                  <div class="flex items-center gap-2 text-sm text-stone-700 font-bold mb-1">
-                      <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs flex items-center gap-1">👥 {{ rec.peopleNames.length }} 人</span>
-                      <span v-if="rec.groupsData.length > 0" class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs flex items-center gap-1">🔗 {{ rec.groupsData.length }} 圈</span>
-                  </div>
-                  <div class="text-xs text-stone-500 line-clamp-2 leading-relaxed">
-                      <span class="font-bold text-stone-600">成員:</span> {{ rec.peopleNames.join(', ') }}
-                  </div>
-                  <div v-if="rec.groupsData.length > 0" class="mt-1 text-xs text-stone-400 truncate">
-                      <span class="font-bold text-stone-500">圈子:</span> {{ rec.groupsData.map(g => g.name || (g.leaderName + '的圈子')).join(', ') }}
-                  </div>
-             </div>
+            <div
+              v-if="teamRecords.length === 0"
+              class="text-center text-stone-400 text-sm py-4"
+            >
+              暫無記錄
+            </div>
+            <div
+              v-for="(rec, idx) in teamRecords"
+              :key="rec.id"
+              class="bg-white p-3 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition cursor-pointer relative group"
+              @click="loadTeamRecord(rec); showTeamRecordsModal = false"
+            >
+              <div class="flex justify-between items-start mb-2">
+                <div class="text-xs text-stone-500 font-mono">
+                  {{ rec.timestamp }}
+                </div>
+                <button
+                  @click.stop="deleteTeamRecord(idx)"
+                  class="text-stone-300 hover:text-red-400 text-sm p-1 rounded hover:bg-stone-100 transition"
+                >
+                  🗑️
+                </button>
+              </div>
+              <div
+                class="flex items-center gap-2 text-sm text-stone-700 font-bold mb-1"
+              >
+                <span
+                  class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs flex items-center gap-1"
+                  >👥 {{ rec.peopleNames.length }} 人</span
+                >
+                <span
+                  v-if="rec.groupsData.length > 0"
+                  class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs flex items-center gap-1"
+                  >🔗 {{ rec.groupsData.length }} 圈</span
+                >
+              </div>
+              <div class="text-xs text-stone-500 line-clamp-2 leading-relaxed">
+                <span class="font-bold text-stone-600">成員:</span> {{
+                rec.peopleNames.join(', ') }}
+              </div>
+              <div
+                v-if="rec.groupsData.length > 0"
+                class="mt-1 text-xs text-stone-400 truncate"
+              >
+                <span class="font-bold text-stone-500">圈子:</span> {{
+                rec.groupsData.map(g => g.name || (g.leaderName +
+                '的圈子')).join(', ') }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
     </div>
 
     <script>
@@ -832,7 +896,7 @@
             activePayerId: null,
             canNativeShare: false,
             editingExpenseIndex: null,
-            
+
             // History & Records
             historyPeople: [],
             historyGroups: [],
@@ -842,28 +906,33 @@
           };
         },
         mounted() {
-          this.canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
+          this.canNativeShare =
+            typeof navigator !== "undefined" && !!navigator.share;
           this.hasScenarioData = !!(
             typeof SCENARIO_DATA !== "undefined" && SCENARIO_DATA
           );
-          
+
           // Load History
           try {
-             const hp = localStorage.getItem('ncs_history_people');
-             if (hp) this.historyPeople = JSON.parse(hp);
-             
-             const hg = localStorage.getItem('ncs_history_groups');
-             if (hg) this.historyGroups = JSON.parse(hg);
-             
-             const recs = localStorage.getItem('ncs_team_records');
-             if (recs) this.teamRecords = JSON.parse(recs);
-          } catch(e) { console.error("History load error", e); }
+            const hp = localStorage.getItem("ncs_history_people");
+            if (hp) this.historyPeople = JSON.parse(hp);
+
+            const hg = localStorage.getItem("ncs_history_groups");
+            if (hg) this.historyGroups = JSON.parse(hg);
+
+            const recs = localStorage.getItem("ncs_team_records");
+            if (recs) this.teamRecords = JSON.parse(recs);
+          } catch (e) {
+            console.error("History load error", e);
+          }
 
           this.loadFromUrl();
         },
         computed: {
           suggestedPeople() {
-              return this.historyPeople.filter(name => !this.people.some(p => p.name === name)).slice(0, 10);
+            return this.historyPeople
+              .filter((name) => !this.people.some((p) => p.name === name))
+              .slice(0, 10);
           },
           canCreateGroup() {
             return this.groupLeaderId && this.groupMemberIds.length > 0;
@@ -930,24 +999,29 @@
               id: this.nextId++,
               name: name,
             });
-            
+
             // Add to history (Case Insensitive Check)
             const nameLower = name.toLowerCase();
-            const exists = this.historyPeople.some(h => h.toLowerCase() === nameLower);
+            const exists = this.historyPeople.some(
+              (h) => h.toLowerCase() === nameLower
+            );
 
             if (!exists) {
-                this.historyPeople.unshift(name);
-                if (this.historyPeople.length > 20) this.historyPeople.pop();
-                localStorage.setItem('ncs_history_people', JSON.stringify(this.historyPeople));
+              this.historyPeople.unshift(name);
+              if (this.historyPeople.length > 20) this.historyPeople.pop();
+              localStorage.setItem(
+                "ncs_history_people",
+                JSON.stringify(this.historyPeople)
+              );
             }
 
             this.newPersonName = "";
           },
           addHistoryPerson(name) {
-             this.people.push({
-               id: this.nextId++,
-               name: name
-             });
+            this.people.push({
+              id: this.nextId++,
+              name: name,
+            });
           },
           removePerson(id) {
             if (this.activePayerId === id) this.activePayerId = null;
@@ -982,26 +1056,33 @@
 
           createGroup() {
             if (!this.canCreateGroup) return;
-            
+
             const leaderName = this.getPersonName(this.groupLeaderId);
-            const memberNames = this.groupMemberIds.map(id => this.getPersonName(id));
-            
+            const memberNames = this.groupMemberIds.map((id) =>
+              this.getPersonName(id)
+            );
+
             const groupObj = {
-                name: this.groupName,
-                leaderName: leaderName,
-                memberNames: memberNames
+              name: this.groupName,
+              leaderName: leaderName,
+              memberNames: memberNames,
             };
-            
-            const isDuplicate = this.historyGroups.some(g => 
-                g.leaderName === leaderName && 
-                JSON.stringify(g.memberNames.sort()) === JSON.stringify(memberNames.sort()) &&
+
+            const isDuplicate = this.historyGroups.some(
+              (g) =>
+                g.leaderName === leaderName &&
+                JSON.stringify(g.memberNames.sort()) ===
+                  JSON.stringify(memberNames.sort()) &&
                 g.name === this.groupName
             );
-            
+
             if (!isDuplicate) {
-                this.historyGroups.unshift(groupObj);
-                if (this.historyGroups.length > 10) this.historyGroups.pop();
-                localStorage.setItem('ncs_history_groups', JSON.stringify(this.historyGroups));
+              this.historyGroups.unshift(groupObj);
+              if (this.historyGroups.length > 10) this.historyGroups.pop();
+              localStorage.setItem(
+                "ncs_history_groups",
+                JSON.stringify(this.historyGroups)
+              );
             }
 
             this.groups.push({
@@ -1015,98 +1096,116 @@
           },
 
           loadHistoryGroup(group) {
-             this.groupName = group.name || "";
-             const leader = this.people.find(p => p.name === group.leaderName);
-             if (leader) this.groupLeaderId = leader.id;
-             
-             this.groupMemberIds = [];
-             group.memberNames.forEach(mName => {
-                 const m = this.people.find(p => p.name === mName);
-                 if (m) this.groupMemberIds.push(m.id);
-             });
-             this.showHistoryGroups = false;
+            this.groupName = group.name || "";
+            const leader = this.people.find((p) => p.name === group.leaderName);
+            if (leader) this.groupLeaderId = leader.id;
+
+            this.groupMemberIds = [];
+            group.memberNames.forEach((mName) => {
+              const m = this.people.find((p) => p.name === mName);
+              if (m) this.groupMemberIds.push(m.id);
+            });
+            this.showHistoryGroups = false;
           },
 
           deleteHistoryGroup(index) {
-              this.historyGroups.splice(index, 1);
-              localStorage.setItem('ncs_history_groups', JSON.stringify(this.historyGroups));
+            this.historyGroups.splice(index, 1);
+            localStorage.setItem(
+              "ncs_history_groups",
+              JSON.stringify(this.historyGroups)
+            );
           },
-          
+
           saveTeamRecord() {
-             if (this.people.length === 0) return;
-             
-             const record = {
-                 id: Date.now(),
-                 timestamp: new Date().toLocaleString(),
-                 peopleNames: this.people.map(p => p.name),
-                 groupsData: this.groups.map(g => ({
-                     name: g.name,
-                     leaderName: this.getPersonName(g.leaderId),
-                     memberNames: g.memberIds.map(mid => this.getPersonName(mid))
-                 }))
-             };
-             
-             // Avoid duplicates (Structure based)
-             const recordStr = JSON.stringify({ p: record.peopleNames.sort(), g: record.groupsData });
-             const isDuplicate = this.teamRecords.some(r => {
-                 const exStr = JSON.stringify({ p: r.peopleNames.sort(), g: r.groupsData });
-                 return exStr === recordStr;
-             });
-             
-             if (isDuplicate) return;
-             
-             this.teamRecords.unshift(record);
-             if (this.teamRecords.length > 20) this.teamRecords.pop();
-             localStorage.setItem('ncs_team_records', JSON.stringify(this.teamRecords));
-          },
-          
-          loadTeamRecord(rec) {
-              if (this.people.length > 0) {
-                 if(!confirm('確定要載入此組合嗎？當前人員和圈子將被覆蓋。')) return;
-              }
-              
-              // Clear current
-              this.people = [];
-              this.groups = [];
-              this.expenses = [];
-              this.settlements = [];
-              this.calculated = false;
-              this.nextId = 1;
-              
-              // Load People
-              rec.peopleNames.forEach(name => {
-                  this.people.push({
-                      id: this.nextId++,
-                      name: name
-                  });
+            if (this.people.length === 0) return;
+
+            const record = {
+              id: Date.now(),
+              timestamp: new Date().toLocaleString(),
+              peopleNames: this.people.map((p) => p.name),
+              groupsData: this.groups.map((g) => ({
+                name: g.name,
+                leaderName: this.getPersonName(g.leaderId),
+                memberNames: g.memberIds.map((mid) => this.getPersonName(mid)),
+              })),
+            };
+
+            // Avoid duplicates (Structure based)
+            const recordStr = JSON.stringify({
+              p: record.peopleNames.sort(),
+              g: record.groupsData,
+            });
+            const isDuplicate = this.teamRecords.some((r) => {
+              const exStr = JSON.stringify({
+                p: r.peopleNames.sort(),
+                g: r.groupsData,
               });
-              
-              // Load Groups (Reconstruct logical connections)
-              if (rec.groupsData) {
-                  rec.groupsData.forEach(gData => {
-                      const leader = this.people.find(p => p.name === gData.leaderName);
-                      if (!leader) return;
-                      
-                      const memberIds = [];
-                      gData.memberNames.forEach(mName => {
-                          const m = this.people.find(p => p.name === mName);
-                          if (m) memberIds.push(m.id);
-                      });
-                      
-                      if (memberIds.length > 0) {
-                          this.groups.push({
-                              name: gData.name,
-                              leaderId: leader.id,
-                              memberIds: memberIds
-                          });
-                      }
-                  });
-              }
+              return exStr === recordStr;
+            });
+
+            if (isDuplicate) return;
+
+            this.teamRecords.unshift(record);
+            if (this.teamRecords.length > 20) this.teamRecords.pop();
+            localStorage.setItem(
+              "ncs_team_records",
+              JSON.stringify(this.teamRecords)
+            );
           },
-          
+
+          loadTeamRecord(rec) {
+            if (this.people.length > 0) {
+              if (!confirm("確定要載入此組合嗎？當前人員和圈子將被覆蓋。"))
+                return;
+            }
+
+            // Clear current
+            this.people = [];
+            this.groups = [];
+            this.expenses = [];
+            this.settlements = [];
+            this.calculated = false;
+            this.nextId = 1;
+
+            // Load People
+            rec.peopleNames.forEach((name) => {
+              this.people.push({
+                id: this.nextId++,
+                name: name,
+              });
+            });
+
+            // Load Groups (Reconstruct logical connections)
+            if (rec.groupsData) {
+              rec.groupsData.forEach((gData) => {
+                const leader = this.people.find(
+                  (p) => p.name === gData.leaderName
+                );
+                if (!leader) return;
+
+                const memberIds = [];
+                gData.memberNames.forEach((mName) => {
+                  const m = this.people.find((p) => p.name === mName);
+                  if (m) memberIds.push(m.id);
+                });
+
+                if (memberIds.length > 0) {
+                  this.groups.push({
+                    name: gData.name,
+                    leaderId: leader.id,
+                    memberIds: memberIds,
+                  });
+                }
+              });
+            }
+          },
+
           deleteTeamRecord(index) {
-              this.teamRecords.splice(index, 1);
-              localStorage.setItem('ncs_team_records', JSON.stringify(this.teamRecords));
+            this.teamRecords.splice(index, 1);
+            localStorage.setItem(
+              "ncs_team_records",
+              JSON.stringify(this.teamRecords)
+            );
           },
 
           removeGroup(idx) {
@@ -1133,11 +1232,11 @@
           editExpense(originalIdx) {
             const exp = this.expenses[originalIdx];
             if (!exp) return;
-            
+
             // Set active payer to open the accordion
             this.activePayerId = exp.payerId;
             this.editingExpenseIndex = originalIdx;
-            
+
             // Fill form data
             this.expenseDesc = exp.desc;
             this.amount = exp.amount;
@@ -1146,15 +1245,15 @@
           },
 
           cancelEdit() {
-             this.activePayerId = null;
-             this.editingExpenseIndex = null;
-             this.expenseDesc = "";
-             this.amount = 0;
+            this.activePayerId = null;
+            this.editingExpenseIndex = null;
+            this.expenseDesc = "";
+            this.amount = 0;
           },
 
           saveExpense() {
             if (!this.isValidExpense) return;
-            
+
             if (this.editingExpenseIndex !== null) {
               // Update existing
               this.expenses[this.editingExpenseIndex] = {
@@ -1175,13 +1274,13 @@
                 showDetails: false,
               });
             }
-            
+
             // Reset form but keep accordion open for continuous entry if adding
             // If editing, close it
             if (this.editingExpenseIndex === null) {
-                this.activePayerId = null;
+              this.activePayerId = null;
             }
-             
+
             this.expenseDesc = "";
             this.amount = 0;
             // this.activePayerId = null; // Removed to allow feedback or better UX
@@ -1239,10 +1338,10 @@
             this.settlements = [];
             this.calculated = true;
             if (this.people.length === 0) return;
-            
+
             // Save Team Record (People + Groups only)
             if (save) {
-                this.saveTeamRecord();
+              this.saveTeamRecord();
             }
 
             const m = this.getMultiplier();
@@ -1465,7 +1564,7 @@
             try {
               // Minify data structure to reduce size
               // p: people [name], g: groups [name, leaderIdx, [memberIndices]], e: expenses [desc, payerIdx, amount, [splitIndices]]
-              
+
               // Create ID to Index map (1-based)
               const idMap = {};
               this.people.forEach((p, i) => {
@@ -1473,24 +1572,24 @@
               });
 
               const minData = {
-                p: this.people.map(p => p.name),
-                g: this.groups.map(g => [
+                p: this.people.map((p) => p.name),
+                g: this.groups.map((g) => [
                   g.name,
                   idMap[g.leaderId],
-                  g.memberIds.map(mid => idMap[mid])
+                  g.memberIds.map((mid) => idMap[mid]),
                 ]),
-                e: this.expenses.map(exp => [
+                e: this.expenses.map((exp) => [
                   exp.desc,
                   idMap[exp.payerId],
                   exp.amount,
-                  exp.splitIds.map(sid => idMap[sid])
-                ])
+                  exp.splitIds.map((sid) => idMap[sid]),
+                ]),
               };
 
               const json = JSON.stringify(minData);
               // Use LZString for compression
               const compressed = LZString.compressToEncodedURIComponent(json);
-              
+
               const url = new URL(window.location.href);
               url.searchParams.set("d", compressed); // Use 'd' for compressed data
               this.shareUrl = url.toString();
@@ -1524,45 +1623,46 @@
 
           loadFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            
+
             // Try loading compressed data first ('d')
             const compressed = params.get("d");
             if (compressed) {
               try {
-                const json = LZString.decompressFromEncodedURIComponent(compressed);
+                const json =
+                  LZString.decompressFromEncodedURIComponent(compressed);
                 const minData = JSON.parse(json);
-                
+
                 if (minData.p) {
                   // Reconstruct People
                   this.people = minData.p.map((name, i) => ({
                     id: i + 1,
-                    name: name
+                    name: name,
                   }));
-                  
+
                   // Index to ID map (1-based index -> ID)
                   // Since we just assigned IDs 1..N, index i corresponds to ID i+1
-                  
+
                   // Reconstruct Groups
                   if (minData.g) {
-                    this.groups = minData.g.map(g => ({
+                    this.groups = minData.g.map((g) => ({
                       name: g[0],
                       leaderId: g[1], // Index is same as ID in this reconstruction
-                      memberIds: g[2]
+                      memberIds: g[2],
                     }));
                   }
-                  
+
                   // Reconstruct Expenses
                   if (minData.e) {
-                    this.expenses = minData.e.map(e => ({
+                    this.expenses = minData.e.map((e) => ({
                       desc: e[0],
                       payerId: e[1],
                       amount: e[2],
                       splitIds: e[3],
-                      showDetails: false
+                      showDetails: false,
                     }));
                   }
                 }
-                
+
                 this.finishLoading();
                 return;
               } catch (e) {
@@ -1652,9 +1752,13 @@
             this.groupName = "";
             this.groupLeaderId = null;
             this.groupMemberIds = [];
-            
+
             // Clear URL params
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname
+            );
           },
         },
       });
