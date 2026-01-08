@@ -179,10 +179,10 @@
                   <div class="space-y-2">
                     <div class="flex justify-between items-center mb-1">
                       <span class="text-xs font-bold text-emerald-600"
-                        >新增消費 (墊款人: {{ p.name }})</span
+                        >{{ editingExpenseIndex !== null ? '修改消費' : '新增消費' }} (墊款人: {{ p.name }})</span
                       >
                       <button
-                        @click="activePayerId = null"
+                        @click="cancelEdit"
                         class="text-stone-400 hover:text-stone-600 text-xs"
                       >
                         取消
@@ -384,11 +384,11 @@
                     </div>
 
                     <button
-                      @click="addExpense"
+                      @click="saveExpense"
                       :disabled="!isValidExpense"
                       class="w-full bg-emerald-600 text-white py-2 rounded text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm"
                     >
-                      新增
+                      {{ editingExpenseIndex !== null ? '更新' : '新增' }}
                     </button>
                   </div>
                 </div>
@@ -423,6 +423,13 @@
                           {{ exp.splitIds.length }}人
                         </span>
                       </div>
+                      <button
+                        @click.stop="editExpense(exp.originalIndex)"
+                        class="text-stone-300 hover:text-blue-400 px-1 opacity-0 group-hover:opacity-100 transition"
+                        title="編輯"
+                      >
+                        ✎
+                      </button>
                       <button
                         @click.stop="removeExpense(exp.originalIndex)"
                         class="text-stone-300 hover:text-red-400 px-1 opacity-0 group-hover:opacity-100 transition"
@@ -748,6 +755,7 @@
             copyBtnText: "複製",
             activePayerId: null,
             canNativeShare: false,
+            editingExpenseIndex: null,
           };
         },
         mounted() {
@@ -872,35 +880,76 @@
 
           openExpenseForm(personId) {
             if (this.activePayerId === personId) {
-              this.activePayerId = null;
-              return;
+              if (this.editingExpenseIndex === null) {
+                // If opening normal add form and already open, close it
+                this.activePayerId = null;
+                return;
+              }
+              // If switching from edit to add on same person, just reset
             }
             this.activePayerId = personId;
+            this.editingExpenseIndex = null;
             this.expenseDesc = "";
             this.amount = 0;
             this.splitAmong = this.people.map((p) => p.id);
             this.showCalculator = false;
           },
 
-          splitAll() {
-            this.splitAmong = this.people.map((p) => p.id);
-          },
-          splitNone() {
-            this.splitAmong = [];
+          editExpense(originalIdx) {
+            const exp = this.expenses[originalIdx];
+            if (!exp) return;
+            
+            // Set active payer to open the accordion
+            this.activePayerId = exp.payerId;
+            this.editingExpenseIndex = originalIdx;
+            
+            // Fill form data
+            this.expenseDesc = exp.desc;
+            this.amount = exp.amount;
+            this.splitAmong = [...exp.splitIds];
+            this.showCalculator = false;
           },
 
-          addExpense() {
+          cancelEdit() {
+             this.activePayerId = null;
+             this.editingExpenseIndex = null;
+             this.expenseDesc = "";
+             this.amount = 0;
+          },
+
+          saveExpense() {
             if (!this.isValidExpense) return;
-            this.expenses.push({
-              desc: this.expenseDesc,
-              payerId: this.activePayerId,
-              amount: this.amount,
-              splitIds: [...this.splitAmong],
-              showDetails: false,
-            });
+            
+            if (this.editingExpenseIndex !== null) {
+              // Update existing
+              this.expenses[this.editingExpenseIndex] = {
+                ...this.expenses[this.editingExpenseIndex],
+                desc: this.expenseDesc,
+                payerId: this.activePayerId,
+                amount: this.amount,
+                splitIds: [...this.splitAmong],
+              };
+              this.editingExpenseIndex = null;
+            } else {
+              // Create new
+              this.expenses.push({
+                desc: this.expenseDesc,
+                payerId: this.activePayerId,
+                amount: this.amount,
+                splitIds: [...this.splitAmong],
+                showDetails: false,
+              });
+            }
+            
+            // Reset form but keep accordion open for continuous entry if adding
+            // If editing, close it
+            if (this.editingExpenseIndex === null) {
+                this.activePayerId = null;
+            }
+             
             this.expenseDesc = "";
             this.amount = 0;
-            this.activePayerId = null;
+            // this.activePayerId = null; // Removed to allow feedback or better UX
           },
 
           // 修正：刪除需使用原始 Index
