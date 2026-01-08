@@ -662,11 +662,6 @@
                 class="w-fit text-[10px] bg-slate-900 text-slate-300 px-2 py-1 rounded border border-slate-600 shadow uppercase tracking-wider"
                 >圈內互轉</span
               >
-              <!-- <span
-                v-else
-                class="text-[10px] bg-emerald-900/50 text-emerald-300 px-2 py-1 rounded border border-emerald-800 shadow uppercase tracking-wider"
-                >跨圈結算</span
-              > -->
             </div>
             <div
               class="text-xl font-mono font-bold text-emerald-400 tracking-wide"
@@ -697,11 +692,13 @@
           class="mt-6 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 animate-fade-in"
         >
           <label
+            for="share-url-input"
             class="block text-xs text-slate-400 mb-2 font-bold uppercase tracking-wider"
             >🔗 分享此結果 (包含所有資料)</label
           >
           <div class="flex gap-2">
             <input
+              id="share-url-input"
               type="text"
               :value="shareUrl"
               readonly
