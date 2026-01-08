@@ -893,8 +893,8 @@
             if (!this.isValidExpense) return;
             this.expenses.push({
               desc: this.expenseDesc,
-              payerId: this.payerId,
-              amount: this.aactivePount,
+              payerId: this.activePayerId,
+              amount: this.amount,
               splitIds: [...this.splitAmong],
               showDetails: false,
             });
