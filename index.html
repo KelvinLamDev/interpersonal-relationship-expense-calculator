@@ -512,52 +512,12 @@
               >
                 🔗 建立圈子
                 <div class="ml-auto flex items-center gap-2">
-                  <button
-                    v-if="historyGroups.length > 0"
-                    @click="showHistoryGroups = !showHistoryGroups"
-                    class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 hover:bg-emerald-100 transition"
-                  >
-                    {{ showHistoryGroups ? '隱藏記錄' : '從記錄載入' }}
-                  </button>
                   <span
                     class="text-[10px] text-stone-400 font-normal hidden sm:inline"
                     >成員優先互轉，圈主對外結算</span
                   >
                 </div>
               </h3>
-
-              <!-- History Groups Selection -->
-              <div
-                v-if="showHistoryGroups && historyGroups.length > 0"
-                class="mb-4 bg-white border border-emerald-100 rounded-lg p-2 max-h-40 overflow-y-auto"
-              >
-                <div
-                  v-for="(hg, idx) in historyGroups"
-                  :key="idx"
-                  class="flex justify-between items-center p-2 hover:bg-stone-50 rounded cursor-pointer group border-b border-stone-100 last:border-0"
-                  @click="loadHistoryGroup(hg)"
-                >
-                  <div>
-                    <div class="text-xs font-bold text-emerald-700">
-                      👑 {{ hg.leaderName }} 的圈子
-                      <span
-                        v-if="hg.name"
-                        class="bg-stone-100 text-stone-500 px-1 rounded ml-1"
-                        >{{ hg.name }}</span
-                      >
-                    </div>
-                    <div class="text-[10px] text-stone-500 mt-0.5">
-                      成員: {{ hg.memberNames.join(', ') }}
-                    </div>
-                  </div>
-                  <button
-                    @click.stop="deleteHistoryGroup(idx)"
-                    class="text-stone-300 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
 
               <div class="flex gap-2 mb-3">
                 <div class="w-1/2">
@@ -899,9 +859,7 @@
 
             // History & Records
             historyPeople: [],
-            historyGroups: [],
             teamRecords: [],
-            showHistoryGroups: false,
             showTeamRecordsModal: false,
           };
         },
@@ -916,9 +874,6 @@
           try {
             const hp = localStorage.getItem("ncs_history_people");
             if (hp) this.historyPeople = JSON.parse(hp);
-
-            const hg = localStorage.getItem("ncs_history_groups");
-            if (hg) this.historyGroups = JSON.parse(hg);
 
             const recs = localStorage.getItem("ncs_team_records");
             if (recs) this.teamRecords = JSON.parse(recs);
@@ -1056,35 +1011,7 @@
 
           createGroup() {
             if (!this.canCreateGroup) return;
-
-            const leaderName = this.getPersonName(this.groupLeaderId);
-            const memberNames = this.groupMemberIds.map((id) =>
-              this.getPersonName(id)
-            );
-
-            const groupObj = {
-              name: this.groupName,
-              leaderName: leaderName,
-              memberNames: memberNames,
-            };
-
-            const isDuplicate = this.historyGroups.some(
-              (g) =>
-                g.leaderName === leaderName &&
-                JSON.stringify(g.memberNames.sort()) ===
-                  JSON.stringify(memberNames.sort()) &&
-                g.name === this.groupName
-            );
-
-            if (!isDuplicate) {
-              this.historyGroups.unshift(groupObj);
-              if (this.historyGroups.length > 10) this.historyGroups.pop();
-              localStorage.setItem(
-                "ncs_history_groups",
-                JSON.stringify(this.historyGroups)
-              );
-            }
-
+            
             this.groups.push({
               name: this.groupName,
               leaderId: this.groupLeaderId,
@@ -1093,27 +1020,6 @@
             this.groupName = "";
             this.groupLeaderId = null;
             this.groupMemberIds = [];
-          },
-
-          loadHistoryGroup(group) {
-            this.groupName = group.name || "";
-            const leader = this.people.find((p) => p.name === group.leaderName);
-            if (leader) this.groupLeaderId = leader.id;
-
-            this.groupMemberIds = [];
-            group.memberNames.forEach((mName) => {
-              const m = this.people.find((p) => p.name === mName);
-              if (m) this.groupMemberIds.push(m.id);
-            });
-            this.showHistoryGroups = false;
-          },
-
-          deleteHistoryGroup(index) {
-            this.historyGroups.splice(index, 1);
-            localStorage.setItem(
-              "ncs_history_groups",
-              JSON.stringify(this.historyGroups)
-            );
           },
 
           saveTeamRecord() {
