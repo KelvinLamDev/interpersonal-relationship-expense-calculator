@@ -26,12 +26,19 @@ const app = createApp({
       canNativeShare: false,
       editingExpenseIndex: null,
 
+      // Locale support
+      currentLang: "zh-TW",
+      localeData: {},
+      localesLoaded: false,
+
       // History & Records
       historyPeople: [],
       teamRecords: [],
       showTeamRecordsModal: false,
     };
   },
+
+
   mounted() {
     this.canNativeShare =
       typeof navigator !== "undefined" && !!navigator.share;
@@ -51,6 +58,8 @@ const app = createApp({
     }
 
     this.loadFromUrl();
+    // Load locale files for i18n
+    this.loadLocales();
   },
   computed: {
     suggestedPeople() {
@@ -116,6 +125,40 @@ const app = createApp({
       return Math.pow(10, this.precision);
     },
 
+    // Locale loader and translator
+    async loadLocales() {
+      try {
+        const enResp = await fetch('locales/en.json');
+        const zhResp = await fetch('locales/zh-TW.json');
+        if (enResp.ok) {
+          this.localeData['en'] = await enResp.json();
+        }
+        if (zhResp.ok) {
+          this.localeData['zh-TW'] = await zhResp.json();
+        }
+        this.localesLoaded = true;
+      } catch (e) {
+        console.error('Locale load error', e);
+      }
+    },
+
+    applyLocale() {
+      // Force a re-render; templates call t(...)
+      this.$forceUpdate && this.$forceUpdate();
+    },
+
+    t(key) {
+      if (!this.localeData) return key;
+      const lang = this.currentLang || 'zh-TW';
+      const map = this.localeData[lang] || {};
+      // Exact match first
+      if (map[key] !== undefined) return map[key];
+      // Fallback: try trimming emoji/spaces
+      const trimmed = key.trim();
+      if (map[trimmed] !== undefined) return map[trimmed];
+      return key;
+    },
+
     addPerson() {
       if (!this.newPersonName.trim()) return;
       const name = this.newPersonName.trim();
@@ -160,7 +203,7 @@ const app = createApp({
       this.calculated = false;
     },
     getPersonName(id) {
-      return this.people.find((p) => p.id === id)?.name || "未知";
+      return this.people.find((p) => p.id === id)?.name || this.t("未知");
     },
 
     getPersonExpenses(personId) {
@@ -230,7 +273,7 @@ const app = createApp({
 
     loadTeamRecord(rec) {
       if (this.people.length > 0) {
-        if (!confirm("確定要載入此組合嗎？當前人員和圈子將被覆蓋。"))
+        if (!confirm(this.t("確定要載入此組合嗎？當前人員和圈子將被覆蓋。")))
           return;
       }
 
@@ -686,13 +729,13 @@ const app = createApp({
       if (navigator.share) {
         navigator
           .share({
-            title: "分帳計算結果",
-            text: "這是我們的分帳計算結果，請查看：",
+            title: this.t('分帳計算結果'),
+            text: this.t('這是我們的分帳計算結果，請查看：'),
             url: this.shareUrl,
           })
           .catch((error) => console.log("Error sharing", error));
       } else {
-        alert("您的瀏覽器不支援原生分享功能，請使用複製連結。");
+        alert(this.t('您的瀏覽器不支援原生分享功能，請使用複製連結。'));
       }
     },
 
@@ -769,7 +812,7 @@ const app = createApp({
           this.finishLoading();
         } catch (e) {
           console.error("Error loading data from URL", e);
-          alert("無法載入分享的資料，連結可能已損壞。");
+        alert(this.t('無法載入分享的資料，連結可能已損壞。'));
         }
       }
     },
@@ -807,12 +850,12 @@ const app = createApp({
           this.calculateSettlement();
         });
       } else {
-        alert("Scenario data not found!");
+        alert(this.t('Scenario data not found!'));
       }
     },
 
     clearAllData() {
-      if (!confirm("確定要清空所有資料嗎？此動作無法復原。")) return;
+      if (!confirm(this.t('確定要清空所有資料嗎？此動作無法復原。'))) return;
       this.people = [];
       this.groups = [];
       this.expenses = [];
