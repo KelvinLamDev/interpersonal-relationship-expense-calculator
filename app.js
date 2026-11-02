@@ -21,7 +21,7 @@ const app = createApp({
       precision: 2,
       hasScenarioData: false,
       shareUrl: "",
-      copyBtnText: "複製",
+      copyBtnKey: "share.copy",
       activePayerId: null,
       canNativeShare: false,
       editingExpenseIndex: null,
@@ -148,15 +148,23 @@ const app = createApp({
       }
     },
 
+    lookupLocale(map, key) {
+      if (!map || !key) return undefined;
+      return key.split(".").reduce((cur, part) => {
+        if (cur == null || typeof cur !== "object") return undefined;
+        return cur[part];
+      }, map);
+    },
+
     t(key) {
-      if (!this.localeData) return key;
-      const lang = this.currentLang || 'zh-TW';
-      const map = this.localeData[lang] || {};
-      // Exact match first
-      if (map[key] !== undefined) return map[key];
-      // Fallback: try trimming emoji/spaces
-      const trimmed = key.trim();
-      if (map[trimmed] !== undefined) return map[trimmed];
+      if (!key) return "";
+      const lang = this.currentLang || "zh-TW";
+      const primary = this.lookupLocale(this.localeData[lang], key);
+      if (typeof primary === "string") return primary;
+      if (lang !== "zh-TW") {
+        const fallback = this.lookupLocale(this.localeData["zh-TW"], key);
+        if (typeof fallback === "string") return fallback;
+      }
       return key;
     },
 
@@ -231,7 +239,7 @@ const app = createApp({
       this.calculated = false;
     },
     getPersonName(id) {
-      return this.people.find((p) => p.id === id)?.name || this.t("未知");
+      return this.people.find((p) => p.id === id)?.name || this.t("common.unknown");
     },
 
     getPersonExpenses(personId) {
@@ -301,7 +309,7 @@ const app = createApp({
 
     loadTeamRecord(rec) {
       if (this.people.length > 0) {
-        if (!confirm(this.t("確定要載入此組合嗎？當前人員和圈子將被覆蓋。")))
+        if (!confirm(this.t("records.loadConfirm")))
           return;
       }
 
@@ -735,7 +743,7 @@ const app = createApp({
         const url = new URL(window.location.href);
         url.searchParams.set("d", compressed); // Use 'd' for compressed data
         this.shareUrl = url.toString();
-        this.copyBtnText = "複製";
+        this.copyBtnKey = "share.copy";
       } catch (e) {
         console.error("Error generating link", e);
       }
@@ -744,8 +752,8 @@ const app = createApp({
     copyShareLink() {
       if (!this.shareUrl) return;
       navigator.clipboard.writeText(this.shareUrl).then(() => {
-        this.copyBtnText = "已複製!";
-        setTimeout(() => (this.copyBtnText = "複製"), 2000);
+        this.copyBtnKey = "share.copied";
+        setTimeout(() => (this.copyBtnKey = "share.copy"), 2000);
       });
     },
 
@@ -753,13 +761,13 @@ const app = createApp({
       if (navigator.share) {
         navigator
           .share({
-            title: this.t('分帳計算結果'),
-            text: this.t('這是我們的分帳計算結果，請查看：'),
+            title: this.t("share.resultTitle"),
+            text: this.t("share.resultText"),
             url: this.shareUrl,
           })
           .catch((error) => console.log("Error sharing", error));
       } else {
-        alert(this.t('您的瀏覽器不支援原生分享功能，請使用複製連結。'));
+        alert(this.t("share.nativeUnsupported"));
       }
     },
 
@@ -836,7 +844,7 @@ const app = createApp({
           this.finishLoading();
         } catch (e) {
           console.error("Error loading data from URL", e);
-        alert(this.t('無法載入分享的資料，連結可能已損壞。'));
+        alert(this.t("share.loadFailed"));
         }
       }
     },
@@ -874,12 +882,12 @@ const app = createApp({
           this.calculateSettlement();
         });
       } else {
-        alert(this.t('Scenario data not found!'));
+        alert(this.t("common.scenarioNotFound"));
       }
     },
 
     clearAllData() {
-      if (!confirm(this.t('確定要清空所有資料嗎？此動作無法復原。'))) return;
+      if (!confirm(this.t("common.clearAllConfirm"))) return;
       this.people = [];
       this.groups = [];
       this.expenses = [];
