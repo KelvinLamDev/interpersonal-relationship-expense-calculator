@@ -39,12 +39,18 @@ const app = createApp({
   },
 
 
-  mounted() {
+  async mounted() {
     this.canNativeShare =
       typeof navigator !== "undefined" && !!navigator.share;
     this.hasScenarioData = !!(
       typeof SCENARIO_DATA !== "undefined" && SCENARIO_DATA
     );
+
+    const savedLang = localStorage.getItem("ncs_lang");
+    if (savedLang === "en" || savedLang === "zh-TW") {
+      this.currentLang = savedLang;
+    }
+    document.documentElement.lang = this.currentLang;
 
     // Load History
     try {
@@ -57,9 +63,9 @@ const app = createApp({
       console.error("History load error", e);
     }
 
+    // Locales first so URL-load alerts can translate
+    await this.loadLocales();
     this.loadFromUrl();
-    // Load locale files for i18n
-    this.loadLocales();
   },
   computed: {
     suggestedPeople() {
@@ -154,6 +160,19 @@ const app = createApp({
       return key;
     },
 
+    setLang(lang) {
+      this.currentLang = lang;
+      localStorage.setItem("ncs_lang", lang);
+      document.documentElement.lang = lang;
+    },
+
+    splitAll() {
+      this.splitAmong = this.people.map((p) => p.id);
+    },
+    splitNone() {
+      this.splitAmong = [];
+    },
+
     addPerson() {
       if (!this.newPersonName.trim()) return;
       const name = this.newPersonName.trim();
@@ -187,13 +206,27 @@ const app = createApp({
     },
     removePerson(id) {
       if (this.activePayerId === id) this.activePayerId = null;
+      if (this.groupLeaderId === id) this.groupLeaderId = null;
+      this.groupMemberIds = this.groupMemberIds.filter((mid) => mid !== id);
+      this.splitAmong = this.splitAmong.filter((sid) => sid !== id);
+      this.editingExpenseIndex = null;
+
       this.people = this.people.filter((p) => p.id !== id);
       this.groups = this.groups.filter((g) => g.leaderId !== id);
       this.groups.forEach((g) => {
         g.memberIds = g.memberIds.filter((mid) => mid !== id);
       });
       this.groups = this.groups.filter((g) => g.memberIds.length > 0);
-      this.expenses = [];
+
+      // Drop expenses paid by this person; remove them from other splits
+      this.expenses = this.expenses
+        .filter((e) => e.payerId !== id)
+        .map((e) => ({
+          ...e,
+          splitIds: e.splitIds.filter((sid) => sid !== id),
+        }))
+        .filter((e) => e.splitIds.length > 0);
+
       this.settlements = [];
       this.calculated = false;
     },
@@ -243,14 +276,14 @@ const app = createApp({
         })),
       };
 
-      // Avoid duplicates (Structure based)
+      // Avoid duplicates (Structure based) — copy before sort to preserve display order
       const recordStr = JSON.stringify({
-        p: record.peopleNames.sort(),
+        p: [...record.peopleNames].sort(),
         g: record.groupsData,
       });
       const isDuplicate = this.teamRecords.some((r) => {
         const exStr = JSON.stringify({
-          p: r.peopleNames.sort(),
+          p: [...r.peopleNames].sort(),
           g: r.groupsData,
         });
         return exStr === recordStr;
@@ -367,8 +400,9 @@ const app = createApp({
     saveExpense() {
       if (!this.isValidExpense) return;
 
-      if (this.editingExpenseIndex !== null) {
-        // Update existing
+      const wasEditing = this.editingExpenseIndex !== null;
+
+      if (wasEditing) {
         this.expenses[this.editingExpenseIndex] = {
           ...this.expenses[this.editingExpenseIndex],
           desc: this.expenseDesc,
@@ -377,8 +411,8 @@ const app = createApp({
           splitIds: [...this.splitAmong],
         };
         this.editingExpenseIndex = null;
+        this.activePayerId = null;
       } else {
-        // Create new
         this.expenses.push({
           desc: this.expenseDesc,
           payerId: this.activePayerId,
@@ -386,17 +420,12 @@ const app = createApp({
           splitIds: [...this.splitAmong],
           showDetails: false,
         });
-      }
-
-      // Reset form but keep accordion open for continuous entry if adding
-      // If editing, close it
-      if (this.editingExpenseIndex === null) {
-        this.activePayerId = null;
+        // Keep accordion open for continuous entry
+        this.splitAmong = this.people.map((p) => p.id);
       }
 
       this.expenseDesc = "";
       this.amount = 0;
-      // this.activePayerId = null; // Removed to allow feedback or better UX
     },
 
     // 修正：刪除需使用原始 Index

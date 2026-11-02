@@ -39,7 +39,7 @@
               <div class="flex items-center gap-1 rounded-full bg-stone-100 p-1">
                 <button
                   type="button"
-                  @click="currentLang = 'zh-TW'"
+                  @click="setLang('zh-TW')"
                   :class="currentLang === 'zh-TW' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-600 hover:bg-white'"
                   class="rounded-full px-3 py-1.5 text-xs font-semibold transition min-w-[60px]"
                 >
@@ -47,7 +47,7 @@
                 </button>
                 <button
                   type="button"
-                  @click="currentLang = 'en'"
+                  @click="setLang('en')"
                   :class="currentLang === 'en' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-600 hover:bg-white'"
                   class="rounded-full px-3 py-1.5 text-xs font-semibold transition min-w-[60px]"
                 >
@@ -717,7 +717,7 @@
           <label
             for="share-url-input"
             class="block text-xs text-slate-400 mb-2 font-bold uppercase tracking-wider"
-            >{{ t('🔗 分享此結果 (包含所有資料)') }}</label>
+            >{{ t('🔗 分享此結果 (包含所有資料)') }}</label
           >
           <div class="flex gap-2">
             <input
