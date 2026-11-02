@@ -142,11 +142,6 @@ const app = createApp({
       }
     },
 
-    applyLocale() {
-      // Force a re-render; templates call t(...)
-      this.$forceUpdate && this.$forceUpdate();
-    },
-
     t(key) {
       if (!this.localeData) return key;
       const lang = this.currentLang || 'zh-TW';

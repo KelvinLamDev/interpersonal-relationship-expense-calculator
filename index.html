@@ -31,7 +31,7 @@
               @click="loadUserScenario"
               class="text-xs bg-stone-200 hover:bg-stone-300 px-3 py-1.5 rounded-full text-stone-600 transition font-medium"
             >
-              📂 {{ t('📂 載入真實案例') }}
+              {{ t('📂 載入真實案例') }}
             </button>
 
             <div class="flex items-center gap-2 rounded-full border border-stone-200 bg-white/90 px-2.5 py-1.5 shadow-sm">
@@ -39,7 +39,7 @@
               <div class="flex items-center gap-1 rounded-full bg-stone-100 p-1">
                 <button
                   type="button"
-                  @click="currentLang = 'zh-TW'; applyLocale()"
+                  @click="currentLang = 'zh-TW'"
                   :class="currentLang === 'zh-TW' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-600 hover:bg-white'"
                   class="rounded-full px-3 py-1.5 text-xs font-semibold transition min-w-[60px]"
                 >
@@ -47,7 +47,7 @@
                 </button>
                 <button
                   type="button"
-                  @click="currentLang = 'en'; applyLocale()"
+                  @click="currentLang = 'en'"
                   :class="currentLang === 'en' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-600 hover:bg-white'"
                   class="rounded-full px-3 py-1.5 text-xs font-semibold transition min-w-[60px]"
                 >
