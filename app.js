@@ -21,7 +21,7 @@ const app = createApp({
       precision: 2,
       hasScenarioData: false,
       shareUrl: "",
-      copyBtnText: "複製",
+      copyBtnKey: "share.copy",
       activePayerId: null,
       canNativeShare: false,
       editingExpenseIndex: null,
@@ -39,12 +39,18 @@ const app = createApp({
   },
 
 
-  mounted() {
+  async mounted() {
     this.canNativeShare =
       typeof navigator !== "undefined" && !!navigator.share;
     this.hasScenarioData = !!(
       typeof SCENARIO_DATA !== "undefined" && SCENARIO_DATA
     );
+
+    const savedLang = localStorage.getItem("ncs_lang");
+    if (savedLang === "en" || savedLang === "zh-TW") {
+      this.currentLang = savedLang;
+    }
+    document.documentElement.lang = this.currentLang;
 
     // Load History
     try {
@@ -57,9 +63,9 @@ const app = createApp({
       console.error("History load error", e);
     }
 
+    // Locales first so URL-load alerts can translate
+    await this.loadLocales();
     this.loadFromUrl();
-    // Load locale files for i18n
-    this.loadLocales();
   },
   computed: {
     suggestedPeople() {
@@ -142,16 +148,37 @@ const app = createApp({
       }
     },
 
+    lookupLocale(map, key) {
+      if (!map || !key) return undefined;
+      return key.split(".").reduce((cur, part) => {
+        if (cur == null || typeof cur !== "object") return undefined;
+        return cur[part];
+      }, map);
+    },
+
     t(key) {
-      if (!this.localeData) return key;
-      const lang = this.currentLang || 'zh-TW';
-      const map = this.localeData[lang] || {};
-      // Exact match first
-      if (map[key] !== undefined) return map[key];
-      // Fallback: try trimming emoji/spaces
-      const trimmed = key.trim();
-      if (map[trimmed] !== undefined) return map[trimmed];
+      if (!key) return "";
+      const lang = this.currentLang || "zh-TW";
+      const primary = this.lookupLocale(this.localeData[lang], key);
+      if (typeof primary === "string") return primary;
+      if (lang !== "zh-TW") {
+        const fallback = this.lookupLocale(this.localeData["zh-TW"], key);
+        if (typeof fallback === "string") return fallback;
+      }
       return key;
+    },
+
+    setLang(lang) {
+      this.currentLang = lang;
+      localStorage.setItem("ncs_lang", lang);
+      document.documentElement.lang = lang;
+    },
+
+    splitAll() {
+      this.splitAmong = this.people.map((p) => p.id);
+    },
+    splitNone() {
+      this.splitAmong = [];
     },
 
     addPerson() {
@@ -187,18 +214,32 @@ const app = createApp({
     },
     removePerson(id) {
       if (this.activePayerId === id) this.activePayerId = null;
+      if (this.groupLeaderId === id) this.groupLeaderId = null;
+      this.groupMemberIds = this.groupMemberIds.filter((mid) => mid !== id);
+      this.splitAmong = this.splitAmong.filter((sid) => sid !== id);
+      this.editingExpenseIndex = null;
+
       this.people = this.people.filter((p) => p.id !== id);
       this.groups = this.groups.filter((g) => g.leaderId !== id);
       this.groups.forEach((g) => {
         g.memberIds = g.memberIds.filter((mid) => mid !== id);
       });
       this.groups = this.groups.filter((g) => g.memberIds.length > 0);
-      this.expenses = [];
+
+      // Drop expenses paid by this person; remove them from other splits
+      this.expenses = this.expenses
+        .filter((e) => e.payerId !== id)
+        .map((e) => ({
+          ...e,
+          splitIds: e.splitIds.filter((sid) => sid !== id),
+        }))
+        .filter((e) => e.splitIds.length > 0);
+
       this.settlements = [];
       this.calculated = false;
     },
     getPersonName(id) {
-      return this.people.find((p) => p.id === id)?.name || this.t("未知");
+      return this.people.find((p) => p.id === id)?.name || this.t("common.unknown");
     },
 
     getPersonExpenses(personId) {
@@ -243,14 +284,14 @@ const app = createApp({
         })),
       };
 
-      // Avoid duplicates (Structure based)
+      // Avoid duplicates (Structure based) — copy before sort to preserve display order
       const recordStr = JSON.stringify({
-        p: record.peopleNames.sort(),
+        p: [...record.peopleNames].sort(),
         g: record.groupsData,
       });
       const isDuplicate = this.teamRecords.some((r) => {
         const exStr = JSON.stringify({
-          p: r.peopleNames.sort(),
+          p: [...r.peopleNames].sort(),
           g: r.groupsData,
         });
         return exStr === recordStr;
@@ -268,7 +309,7 @@ const app = createApp({
 
     loadTeamRecord(rec) {
       if (this.people.length > 0) {
-        if (!confirm(this.t("確定要載入此組合嗎？當前人員和圈子將被覆蓋。")))
+        if (!confirm(this.t("records.loadConfirm")))
           return;
       }
 
@@ -367,8 +408,9 @@ const app = createApp({
     saveExpense() {
       if (!this.isValidExpense) return;
 
-      if (this.editingExpenseIndex !== null) {
-        // Update existing
+      const wasEditing = this.editingExpenseIndex !== null;
+
+      if (wasEditing) {
         this.expenses[this.editingExpenseIndex] = {
           ...this.expenses[this.editingExpenseIndex],
           desc: this.expenseDesc,
@@ -377,8 +419,8 @@ const app = createApp({
           splitIds: [...this.splitAmong],
         };
         this.editingExpenseIndex = null;
+        this.activePayerId = null;
       } else {
-        // Create new
         this.expenses.push({
           desc: this.expenseDesc,
           payerId: this.activePayerId,
@@ -386,17 +428,12 @@ const app = createApp({
           splitIds: [...this.splitAmong],
           showDetails: false,
         });
-      }
-
-      // Reset form but keep accordion open for continuous entry if adding
-      // If editing, close it
-      if (this.editingExpenseIndex === null) {
-        this.activePayerId = null;
+        // Keep accordion open for continuous entry
+        this.splitAmong = this.people.map((p) => p.id);
       }
 
       this.expenseDesc = "";
       this.amount = 0;
-      // this.activePayerId = null; // Removed to allow feedback or better UX
     },
 
     // 修正：刪除需使用原始 Index
@@ -706,7 +743,7 @@ const app = createApp({
         const url = new URL(window.location.href);
         url.searchParams.set("d", compressed); // Use 'd' for compressed data
         this.shareUrl = url.toString();
-        this.copyBtnText = "複製";
+        this.copyBtnKey = "share.copy";
       } catch (e) {
         console.error("Error generating link", e);
       }
@@ -715,8 +752,8 @@ const app = createApp({
     copyShareLink() {
       if (!this.shareUrl) return;
       navigator.clipboard.writeText(this.shareUrl).then(() => {
-        this.copyBtnText = "已複製!";
-        setTimeout(() => (this.copyBtnText = "複製"), 2000);
+        this.copyBtnKey = "share.copied";
+        setTimeout(() => (this.copyBtnKey = "share.copy"), 2000);
       });
     },
 
@@ -724,13 +761,13 @@ const app = createApp({
       if (navigator.share) {
         navigator
           .share({
-            title: this.t('分帳計算結果'),
-            text: this.t('這是我們的分帳計算結果，請查看：'),
+            title: this.t("share.resultTitle"),
+            text: this.t("share.resultText"),
             url: this.shareUrl,
           })
           .catch((error) => console.log("Error sharing", error));
       } else {
-        alert(this.t('您的瀏覽器不支援原生分享功能，請使用複製連結。'));
+        alert(this.t("share.nativeUnsupported"));
       }
     },
 
@@ -807,7 +844,7 @@ const app = createApp({
           this.finishLoading();
         } catch (e) {
           console.error("Error loading data from URL", e);
-        alert(this.t('無法載入分享的資料，連結可能已損壞。'));
+        alert(this.t("share.loadFailed"));
         }
       }
     },
@@ -845,12 +882,12 @@ const app = createApp({
           this.calculateSettlement();
         });
       } else {
-        alert(this.t('Scenario data not found!'));
+        alert(this.t("common.scenarioNotFound"));
       }
     },
 
     clearAllData() {
-      if (!confirm(this.t('確定要清空所有資料嗎？此動作無法復原。'))) return;
+      if (!confirm(this.t("common.clearAllConfirm"))) return;
       this.people = [];
       this.groups = [];
       this.expenses = [];
